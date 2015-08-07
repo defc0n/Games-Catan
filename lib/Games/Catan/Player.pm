@@ -1,14 +1,14 @@
 package Games::Catan::Player;
 
 use Moo;
-use Types::Standard qw( Str );
+use Types::Standard qw( Enum );
 
-has board => ( is => 'ro',
-	       isa => 'Games::Catan::Board',
-	       required => 1 );
+#has board => ( is => 'ro',
+#	       isa => 'Games::Catan::Board',
+#	       required => 1 );
 
 has color => ( is => 'ro',
-	       isa => Str,
+	       isa => Enum[qw( white red blue orange )],
 	       required => 1 );
 
 has resource_cards => ( is => 'ro',
@@ -20,11 +20,6 @@ has development_cards => ( is => 'ro',
 			   isa => 'Games::Catan::DevelopmentCard',
 			   required => 0,
 			   default => sub { [] } );
-
-has victory_cards => ( is => 'ro',
-		       isa => 'Games::Catan::VictoryCard',
-		       required => 0,
-		       default => sub { [] } );
 
 ### public methods ###
 
@@ -72,9 +67,12 @@ sub _get_victory_card_score {
 
   my $score = 0;
 
-  my $victory_cards = $self->victory_cards;
+  my $victory_cards = $self->board->victory_cards;
 
   foreach my $victory_card ( @$victory_cards ) {
+
+    # skip it if this victory card doesn't apply to this player
+    next if ( !$victory_card->determine_player->color ne $self->color );
 
     $score += $victory_card->num_points;
   }
