@@ -1,6 +1,7 @@
 package Games::Catan::Building::Settlement;
 
 use Moo;
+use Types::Standard qw( Int );
 
 with( 'Games::Catan::Building' );
 

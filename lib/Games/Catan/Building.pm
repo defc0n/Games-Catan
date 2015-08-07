@@ -1,16 +1,10 @@
 package Games::Catan::Building;
 
 use Moo::Role;
-use Types::Standard qw( Int );
-
-has num_points => ( is => 'ro',
-		    isa => Int,
-		    required => 1 );
+use Types::Standard qw( InstanceOf );
 
 has player => ( is => 'ro',
-		isa => 'Games::Catan::Player',
+		isa => InstanceOf['Games::Catan::Player'],
 		required => 1 );
-
-
 
 1;

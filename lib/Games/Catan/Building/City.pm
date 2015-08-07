@@ -1,6 +1,7 @@
 package Games::Catan::Building::City;
 
 use Moo;
+use Types::Standard qw( Int );
 
 with( 'Games::Catan::Building' );
 

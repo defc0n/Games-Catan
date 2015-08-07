@@ -1,7 +1,11 @@
 package Games::Catan::Player;
 
 use Moo;
-use Types::Standard qw( Enum );
+use Types::Standard qw( Enum ArrayRef InstanceOf );
+
+use Games::Catan::Building::Settlement;
+use Games::Catan::Building::City;
+use Games::Catan::Road;
 
 #has board => ( is => 'ro',
 #	       isa => 'Games::Catan::Board',
@@ -11,15 +15,51 @@ has color => ( is => 'ro',
 	       isa => Enum[qw( white red blue orange )],
 	       required => 1 );
 
+has settlements => ( is => 'ro',
+		     isa => ArrayRef[InstanceOf['Games::Catan::Building::Settlement']],
+		     required => 0,
+		     default => sub { [] } );
+
+has cities => ( is => 'ro',
+		isa => ArrayRef[InstanceOf['Games::Catan::Building::City']],
+		required => 0,
+		default => sub { [] } );
+
+has roads => ( is => 'ro',
+	       isa => ArrayRef[InstanceOf['Games::Catan::Road']],
+	       required => 0,
+	       default => sub { [] } );
+
 has resource_cards => ( is => 'ro',
-			isa => 'Games::Catan::ResourceCard',
+			isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard']],
 			required => 0,
 			default => sub { [] } );
 
 has development_cards => ( is => 'ro',
-			   isa => 'Games::Catan::DevelopmentCard',
+			   isa => ArrayRef[InstanceOf['Games::Catan::DevelopmentCard']],
 			   required => 0,
 			   default => sub { [] } );
+
+sub BUILD {
+
+  my ( $self ) = @_;
+
+  # give them all their settlements, cities, and roads
+  for ( 1 .. 5 ) {
+
+    push( @{$self->settlements}, Games::Catan::Building::Settlement->new( player => $self ) );									  
+  }
+
+  for ( 1 .. 4 ) {
+
+    push( @{$self->cities}, Games::Catan::Building::City->new( player => $self ) );
+  }
+
+  for ( 1 .. 15 ) {
+
+    push( @{$self->roads}, Games::Catan::Road->new( player => $self ) );
+  }
+}
 
 ### public methods ###
 
@@ -81,6 +121,8 @@ sub _get_victory_card_score {
 }
 
 sub _get_development_card_score {
+
+  my ( $self ) = @_;
 
   my $score = 0;
 
