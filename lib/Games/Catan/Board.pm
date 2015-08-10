@@ -4,37 +4,36 @@ use Moo;
 use Types::Standard qw( Enum ArrayRef InstanceOf );
 use Graph::Undirected;
 
+use Games::Catan::Robber;
 use Games::Catan::Board::Tile;
-use Games::Catan::Board::Vertex;
 
-has graph => ( is => 'ro',
-	       isa => InstanceOf['Graph::Undirected'],
-	       required => 0,
-	       default => sub { Graph::Undirected->new() } );
+has game => ( is => 'ro',
+	      isa => InstanceOf['Games::Catan'],
+	      required => 1 );
 
 has type => ( is => 'ro',
 	      isa => Enum[qw( beginner )],
 	      required => 0,
 	      default => 'beginner' );
 
-has tiles => ( is => 'ro',
+has graph => ( is => 'rw',
+	       isa => InstanceOf['Graph::Undirected'],
+	       required => 0 );
+
+has tiles => ( is => 'rw',
 	       isa => ArrayRef[InstanceOf['Games::Catan::Board::Tile']],
-	       required => 0,
-	       default => sub { [] } );
+	       required => 0 );
 
-has vertices => ( is => 'ro',
-		  isa => ArrayRef[InstanceOf['Games::Catan::Board::Vertex']],
-		  required => 0,
-		  default => sub { [] } );
-
-#has victory_cards => ( is => 'ro',
-#		       isa => ArrayRef[InstanceOf['Games::Catan::VictoryCard']],
-#		       required => 0,
-#		       default => sub { [] } );
+has robber => ( is => 'rw',
+		isa => InstanceOf['Games::Catan::Robber'],
+		required => 0 );
 
 sub BUILD {
 
   my ( $self ) = @_;
+
+  $self->graph( Graph::Undirected->new() );
+  $self->tiles( [] );
 
   # create the 19 tiles associated with their vertices
   push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'mountains',
@@ -61,29 +60,29 @@ sub BUILD {
 							 number => 4,
 							 vertices => [10, 11, 12, 20, 21, 22] ) );
 
-  push( @{$self->tiles},Games::Catan::Board::Tile->new( terrain => 'hills',
-							number => 10,
-							vertices => [12, 13, 15, 22, 23, 24] ) );
+  push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'hills',
+							 number => 10,
+							 vertices => [12, 13, 15, 22, 23, 24] ) );
 
   push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'fields',
 							 number => 9,
 							 vertices => [25, 16, 17, 27, 28, 29] ) );
 
-  push( @{$self->tiles},Games::Catan::Board::Tile->new( terrain => 'forest',
-							number => 11,
-							vertices => [17, 18, 19, 29, 30, 31] ) );
+  push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
+							 number => 11,
+							 vertices => [17, 18, 19, 29, 30, 31] ) );
 
-  push( @{$self->tiles},Games::Catan::Board::Tile->new( terrain => 'desert',
-							number => 7,
-							vertices => [19, 20, 21, 31, 32, 33] ) );
+  push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'desert',
+							 number => 7,
+							 vertices => [19, 20, 21, 31, 32, 33] ) );
 
   push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
 							 number => 3,
 							 vertices => [21, 22, 23, 33, 34, 35] ) );
 
-  push( @{$self->tiles},Games::Catan::Board::Tile->new( terrain => 'mountains',
-							number => 8,
-							vertices => [23, 24, 26, 35, 36, 37] ) );
+  push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'mountains',
+							 number => 8,
+							 vertices => [23, 24, 26, 35, 36, 37] ) );
 
   push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
 							 number => 8,
@@ -112,14 +111,6 @@ sub BUILD {
   push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'pasture',
 							 number => 11,
 							 vertices => [43, 44, 45, 51, 52, 53] ) );
-
-  # a basic 3-4 player catan board has 54 total vertices
-  for ( 1 .. 54 ) {
-
-    my $vertex = Games::Catan::Board::Vertex->new();
-
-    push( @{$self->vertices}, $vertex );
-  }
 
   # create the edges/adjacencies between the vertices
   $self->graph->add_edge( 0, 1 );
@@ -201,36 +192,12 @@ sub BUILD {
   $self->graph->add_edge( 50, 51 );
   $self->graph->add_edge( 51, 52 );
   $self->graph->add_edge( 52, 53 );
-  $self->graph->add_edge( 45, 53 );  
-}
+  $self->graph->add_edge( 45, 53 );
 
-sub get_buildings {
+  # create the robber initially on the desert tile
+  my $robber = Games::Catan::Robber->new( game => $self->game );
 
-  my ( $self, %args ) = @_;
-
-  my $player = $args{'player'};
-  my $vertices = $self->vertices;
-
-  my $buildings = [];
-
-  foreach my $vertex ( @$vertices ) {
-
-    my $building = $vertex->building;
-
-    # no building at this vertex
-    next if !$building;
-
-    # did they specify the buildings of a player?
-    if ( $player ) {
-
-      # this isn't this player's building
-      next if ( $player->color ne $building->player->color );
-    }
-
-    push( @$buildings, $building );
-  }
-
-  return $buildings;
+  $self->tiles->[9]->robber( $robber );
 }
 
 1;

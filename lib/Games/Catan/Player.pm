@@ -1,15 +1,15 @@
 package Games::Catan::Player;
 
 use Moo;
-use Types::Standard qw( Enum ArrayRef InstanceOf );
+use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf );
 
 use Games::Catan::Building::Settlement;
 use Games::Catan::Building::City;
 use Games::Catan::Road;
 
-#has board => ( is => 'ro',
-#	       isa => 'Games::Catan::Board',
-#	       required => 1 );
+has game => ( is => 'ro',
+	      isa => InstanceOf['Games::Catan'],
+	      required => 1 );
 
 has color => ( is => 'ro',
 	       isa => Enum[qw( white red blue orange )],
@@ -36,15 +36,20 @@ has resource_cards => ( is => 'ro',
 			default => sub { [] } );
 
 has development_cards => ( is => 'ro',
-			   isa => ArrayRef[InstanceOf['Games::Catan::DevelopmentCard']],
+			   isa => ArrayRef[ConsumerOf['Games::Catan::DevelopmentCard']],
 			   required => 0,
 			   default => sub { [] } );
+
+has special_cards => ( is => 'ro',
+		       isa => ArrayRef[ConsumerOf['Games::Catan::SpecialCard']],
+		       required => 0,
+		       default => sub { [] } );
 
 sub BUILD {
 
   my ( $self ) = @_;
 
-  # give them all their settlements, cities, and roads
+  # give them all their initial settlements, cities, and road pieces
   for ( 1 .. 5 ) {
 
     push( @{$self->settlements}, Games::Catan::Building::Settlement->new( player => $self ) );									  
