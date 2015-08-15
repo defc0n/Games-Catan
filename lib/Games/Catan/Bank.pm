@@ -38,7 +38,7 @@ sub BUILD {
 
   my ( $self ) = @_;
 
-  # initialize the resource cards
+  # initialize the resource cards, 19 of each
   for ( 1 .. 19 ) {
 
     push( @{$self->brick}, Games::Catan::ResourceCard::Brick->new() );

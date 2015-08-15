@@ -1,6 +1,6 @@
 package Games::Catan::Player;
 
-use Moo;
+use Moo::Role;
 use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf );
 
 use Games::Catan::Building::Settlement;
@@ -67,6 +67,20 @@ sub BUILD {
 }
 
 ### public methods ###
+
+sub place_first_settlement {
+
+  my ( $self ) = @_;
+
+  die( "Method must be implemented." );
+}
+
+sub place_second_settlement {
+
+  my ( $self ) = @_;
+
+  die( "Method must be implemented." );
+}
 
 sub get_score {
 

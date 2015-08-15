@@ -4,9 +4,11 @@ use warnings;
 use Test::More tests => 6;
 use Data::Dumper;
 
+use Games::Catan;
 use Games::Catan::Board;
 
-my $board = Games::Catan::Board->new();
+my $catan = Games::Catan->new();
+my $board = Games::Catan::Board->new( game => $catan );
 
 is( $board->type, 'beginner', 'beginner board' );
 is( @{$board->tiles}, 19, '19 total tiles' );
