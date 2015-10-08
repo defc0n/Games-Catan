@@ -5,11 +5,12 @@ use Test::More tests => 7;
 use Data::Dumper;
 
 use Games::Catan;
-use Games::Catan::Player;
+use Games::Catan::Player::Stupid;
 
 my $catan = Games::Catan->new();
-my $player = Games::Catan::Player->new( game => $catan, color => 'red' );
+my $player = Games::Catan::Player::Stupid->new( game => $catan, color => 'red' );
 
+# make sure they start out with all proper game components
 is( $player->color, 'red', 'red color' );
 is( @{$player->settlements}, 5, '5 settlements' );
 is( @{$player->cities}, 4, '4 cities' );
