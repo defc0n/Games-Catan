@@ -9,3 +9,4 @@ use Games::Catan;
 my $catan = Games::Catan->new();
 
 ok( $catan->play(), "played game" );
+

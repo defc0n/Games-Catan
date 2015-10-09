@@ -86,6 +86,12 @@ sub play {
     # get the players second settlements + roads
     $self->_get_second_settlements();
 
+    # distribute initial resource cards
+    $self->_distribute_resource_cards();
+
+    # person who went first will also roll first
+    $self->turn( ( $self->turn + 1 ) % $self->num_players );
+
     return $self;
 }
 
@@ -114,6 +120,72 @@ sub _get_second_settlements {
 
         # set the turn for the next player (going back in the opposite direction)
         $self->turn( ( $self->turn - 1 ) % $self->num_players );
+    }
+}
+
+sub _distribute_resource_cards {
+
+    my ( $self ) = @_;
+
+    my $tiles = $self->board->tiles;
+
+    foreach my $tile ( @$tiles ) {
+
+        my $terrain = $tile->terrain;
+        my $vertices = $tile->vertices;
+
+        # no resources for desert tiles
+        next if ( $terrain eq 'desert' );
+
+        foreach my $vertex ( @$vertices ) {
+
+            my $building = $self->board->graph->get_vertex_attribute( $vertex, 'building' );
+
+            # no city/settlement here
+            next if !$building;
+
+            my $num_points = $building->num_points;
+
+            my $player = $building->player;
+
+            for ( 1 .. $num_points ) {
+
+                if ( $terrain eq 'hills' ) {
+
+                    my $brick = pop( @{$self->bank->brick} );
+
+                    push( @{$player->resource_cards}, $brick );
+                }
+
+                elsif ( $terrain eq 'forest' ) {
+
+                    my $lumber = pop( @{$self->bank->lumber} );
+
+                    push( @{$player->resource_cards}, $lumber );
+                }
+
+                elsif ( $terrain eq 'mountains' ) {
+
+                    my $ore = pop( @{$self->bank->ore} );
+
+                    push( @{$player->resource_cards}, $ore );
+                }
+
+                elsif ( $terrain eq 'fields' ) {
+
+                    my $grain = pop( @{$self->bank->grain} );
+
+                    push( @{$player->resource_cards}, $grain );
+                }
+
+                elsif ( $terrain eq 'pasture' ) {
+
+                    my $wool = pop( @{$self->bank->wool} );
+
+                    push( @{$player->resource_cards}, $wool );
+                }
+            }
+        }
     }
 }
 

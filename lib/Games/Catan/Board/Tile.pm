@@ -1,7 +1,7 @@
 package Games::Catan::Board::Tile;
 
 use Moo;
-use Types::Standard qw( Enum InstanceOf Maybe );
+use Types::Standard qw( Enum InstanceOf Maybe ArrayRef Int );
 
 has terrain => ( is => 'ro',
 		 isa => Enum[qw( hills forest mountains fields pasture desert )],
@@ -14,6 +14,10 @@ has number => ( is => 'ro',
 has robber => ( is => 'rw',
 		isa => Maybe[InstanceOf['Games::Catan::Robber']],
 		required => 0 );
+
+has vertices => ( is => 'ro',
+		  isa => ArrayRef[Int],
+		  required => 1 );
 
 sub BUILD {
 
