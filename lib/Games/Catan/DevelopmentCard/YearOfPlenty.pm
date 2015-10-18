@@ -16,4 +16,13 @@ has num_points => ( is => 'ro',
                     required => 0,
                     default => 1 );
 
+sub play {
+
+    my ( $self ) = @_;
+
+    # ...
+
+    $self->played( 1 );
+}
+
 1;

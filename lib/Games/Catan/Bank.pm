@@ -55,8 +55,6 @@ sub give_resource_cards {
 
     my ( $self, $cards ) = @_;
 
-    warn Dumper $cards;
-
     foreach my $card ( @$cards ) {
 
 	if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {

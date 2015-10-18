@@ -46,26 +46,33 @@ sub take_turn {
 	# randomly decide if we want to play one or not before we roll
 	if ( int( rand( 1 ) ) ) {
 
-	    # grab a random development card to play
-	    my $i = int( rand( @unplayed_development_cards ) );
-	    my $dev_card = $unplayed_development_cards[$i];
-
-	    $dev_card->play();
+	    $self->_play_random_development_card( @unplayed_development_cards );
 	    $played_dev_card = 1;
 
 	    # its possible we've won the game now
-	    $score = $self->get_score();
-
-	    if ( $score >= 10 ) {
-		
-		$self->game->winner( $self );
-		return;
-	    }	    
+	    return if $self->game->winner;
 	}
     }
 
     # player must now roll
     $self->game->roll( $self );
+
+    # normally, trading would be done here
+    
+    # decide again if we want to play a development card (if we haven't already)
+    if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
+	
+	if ( int( rand( 1 ) ) ) {
+
+	    $self->_play_random_development_card( @unplayed_development_cards );
+	    $played_dev_card = 1;
+
+	    # its possible we've won the game now
+	    return if $self->game->winner;
+	}
+    }
+
+    # do any buying or building here
 }
 
 sub place_first_settlement {
@@ -199,6 +206,19 @@ sub _place_starting_settlement {
 	my $road = pop( @{$self->roads} );
 	$graph->set_edge_attribute( $int1, $int2, "road", $road );
     }
+}
+
+sub _play_random_development_card {
+
+    my ( $self, @cards ) = @_;
+
+    # grab a random development card to play
+    my $i = int( rand( @cards ) );
+    my $dev_card = $cards[$i];
+
+    warn "playing " . Dumper $dev_card;
+    
+    $dev_card->play();
 }
 
 1;

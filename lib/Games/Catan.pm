@@ -71,6 +71,8 @@ has winner => ( is => 'rw',
                 isa => ConsumerOf['Games::Catan::Player'],
                 required => 0 );
 
+### public methods ###
+
 sub play {
 
     my ( $self ) = @_;
@@ -140,6 +142,24 @@ sub roll {
         $self->_distribute_resource_cards( $roll );
     }
 }
+
+sub check_winner {
+
+    my ( $self ) = @_;
+
+    my $players = $self->players;
+
+    foreach my $player ( @$players ) {
+
+	if ( $player->get_score() > 10 ) {
+
+	    $self->winner( $player );
+	    return;
+	}
+    }
+}
+
+### private methods ###
 
 sub _get_first_settlements {
 

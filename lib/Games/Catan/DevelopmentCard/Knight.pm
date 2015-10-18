@@ -18,9 +18,11 @@ has num_points => ( is => 'ro',
 
 sub play {
 
-  my ( $self ) = @_;
+    my ( $self ) = @_;
 
-  # ...
+    # ...
+
+    $self->played( 1 );
 }
 
 1;

@@ -10,6 +10,7 @@ has game => ( is => 'ro',
 has played => ( is => 'rw',
 		isa => Bool,
 		required => 0,
-		default => 0 );
+		default => 0,
+		trigger => sub { my ( $self ) = @_; $self->game->check_winner(); } );
 
 1;
