@@ -67,6 +67,10 @@ has special_cards => ( is => 'rw',
                        isa => ArrayRef[ConsumerOf['Games::Catan::SpecialCard']],
                        required => 0 );
 
+has winner => ( is => 'rw',
+                isa => ConsumerOf['Games::Catan::Player'],
+                required => 0 );
+
 sub play {
 
     my ( $self ) = @_;
@@ -92,7 +96,49 @@ sub play {
     # person who went first will also roll first
     $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
-    return $self;
+    # continue playing until there is a winner
+    while ( !$self->winner ) {
+
+        # whose turn is it?
+        my $player = $self->players->[$self->turn];
+
+        # tell the player to take their turn
+        $player->take_turn();
+
+        # it will be the next player's turn
+        $self->turn( ( $self->turn + 1 ) % $self->num_players );
+    }
+
+    return $self->winner;
+}
+
+sub roll {
+
+    my ( $self, $player ) = @_;
+
+    my $roll = $self->dice->roll();
+
+    # did they activate the robber?
+    if ( $roll == 7 ) {
+
+        # any player with more than 7 cards must discard half of them
+        foreach my $player ( @{$self->players} ) {
+
+            if ( @{$player->resource_cards} > 7 ) {
+
+                $player->discard_robber_cards();
+            }
+        }
+
+        # player who rolled a 7 must choose new robber location and rob from someone there
+        $player->activate_robber();
+    }
+
+    # distribute resources accordingly based upon the roll
+    else {
+
+        $self->_distribute_resource_cards( $roll );
+    }
 }
 
 sub _get_first_settlements {
@@ -125,7 +171,7 @@ sub _get_second_settlements {
 
 sub _distribute_resource_cards {
 
-    my ( $self ) = @_;
+    my ( $self, $roll ) = @_;
 
     my $tiles = $self->board->tiles;
 
@@ -133,9 +179,13 @@ sub _distribute_resource_cards {
 
         my $terrain = $tile->terrain;
         my $vertices = $tile->vertices;
+        my $number = $tile->number;
 
         # no resources for desert tiles
         next if ( $terrain eq 'desert' );
+
+        # didn't roll the number of this tile
+        next if ( $roll && $roll != $number );
 
         foreach my $vertex ( @$vertices ) {
 
@@ -154,12 +204,16 @@ sub _distribute_resource_cards {
 
                     my $brick = pop( @{$self->bank->brick} );
 
+                    next if !defined $brick;
+
                     push( @{$player->resource_cards}, $brick );
                 }
 
                 elsif ( $terrain eq 'forest' ) {
 
                     my $lumber = pop( @{$self->bank->lumber} );
+
+                    next if !defined $lumber;
 
                     push( @{$player->resource_cards}, $lumber );
                 }
@@ -168,6 +222,8 @@ sub _distribute_resource_cards {
 
                     my $ore = pop( @{$self->bank->ore} );
 
+                    next if !defined $ore;
+
                     push( @{$player->resource_cards}, $ore );
                 }
 
@@ -175,12 +231,16 @@ sub _distribute_resource_cards {
 
                     my $grain = pop( @{$self->bank->grain} );
 
+                    next if !defined $grain;
+
                     push( @{$player->resource_cards}, $grain );
                 }
 
                 elsif ( $terrain eq 'pasture' ) {
 
                     my $wool = pop( @{$self->bank->wool} );
+
+                    next if !defined $wool;
 
                     push( @{$player->resource_cards}, $wool );
                 }

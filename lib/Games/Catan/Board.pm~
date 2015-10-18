@@ -209,11 +209,8 @@ sub move_robber {
     # remove the robber from whatever title they currently are on
     foreach my $tile ( @{$self->tiles} ) {
 
-	$tile->clear_robber();
+	$tile->robber( undef ) if $tile->robber;
     }
-
-    # place the robber on the new tile
-    $tile->robber( $self->robber );
 }
 
 1;

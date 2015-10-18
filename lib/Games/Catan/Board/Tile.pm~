@@ -13,8 +13,7 @@ has number => ( is => 'ro',
 
 has robber => ( is => 'rw',
 		isa => Maybe[InstanceOf['Games::Catan::Robber']],
-		required => 0,
-		clearer => 1 );
+		required => 0 );
 
 has vertices => ( is => 'ro',
 		  isa => ArrayRef[Int],

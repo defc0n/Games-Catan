@@ -83,11 +83,6 @@ sub take_turn {
     die( "Method must be implemented." );
 }
 
-sub activate_robber {
-
-    die( "Method must be implemented." );
-}
-
 sub get_score {
 
     my ( $self ) = @_;

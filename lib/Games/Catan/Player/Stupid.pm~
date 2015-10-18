@@ -142,6 +142,8 @@ sub discard_robber_cards {
 
     my $resource_cards = $self->resource_cards;
 
+    warn "resource cards: " . Dumper $resource_cards;
+    
     # how many cards do we need to remove? (must be half, rounded down)
     my $num = int( @$resource_cards / 2 );
 
