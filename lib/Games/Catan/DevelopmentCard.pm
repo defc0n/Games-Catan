@@ -13,4 +13,11 @@ has played => ( is => 'rw',
 		default => 0,
 		trigger => sub { my ( $self ) = @_; $self->game->check_winner(); } );
 
+has cost => ( is => 'ro',
+	      isa => InstanceOf['Games::Catan::Cost'],
+	      required => 0,
+              default => sub { Games::Catan::Cost->new( ore => 1,
+						        wool => 1,
+							grain => 1 ) } );
+
 1;

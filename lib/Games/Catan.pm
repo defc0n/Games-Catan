@@ -126,7 +126,7 @@ sub roll {
         # any player with more than 7 cards must discard half of them
         foreach my $player ( @{$self->players} ) {
 
-            if ( @{$player->resource_cards} > 7 ) {
+            if ( @{$player->get_resource_cards()} > 7 ) {
 
                 $player->discard_robber_cards();
             }
@@ -226,7 +226,7 @@ sub _distribute_resource_cards {
 
                     next if !defined $brick;
 
-                    push( @{$player->resource_cards}, $brick );
+                    push( @{$player->brick}, $brick );
                 }
 
                 elsif ( $terrain eq 'forest' ) {
@@ -235,7 +235,7 @@ sub _distribute_resource_cards {
 
                     next if !defined $lumber;
 
-                    push( @{$player->resource_cards}, $lumber );
+                    push( @{$player->lumber}, $lumber );
                 }
 
                 elsif ( $terrain eq 'mountains' ) {
@@ -244,7 +244,7 @@ sub _distribute_resource_cards {
 
                     next if !defined $ore;
 
-                    push( @{$player->resource_cards}, $ore );
+                    push( @{$player->ore}, $ore );
                 }
 
                 elsif ( $terrain eq 'fields' ) {
@@ -253,7 +253,7 @@ sub _distribute_resource_cards {
 
                     next if !defined $grain;
 
-                    push( @{$player->resource_cards}, $grain );
+                    push( @{$player->grain}, $grain );
                 }
 
                 elsif ( $terrain eq 'pasture' ) {
@@ -262,7 +262,7 @@ sub _distribute_resource_cards {
 
                     next if !defined $wool;
 
-                    push( @{$player->resource_cards}, $wool );
+                    push( @{$player->wool}, $wool );
                 }
             }
         }
