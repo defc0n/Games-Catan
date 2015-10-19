@@ -109,6 +109,8 @@ sub play {
 
         # it will be the next player's turn
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
+
+	$self->check_winner();
     }
 
     return $self->winner;

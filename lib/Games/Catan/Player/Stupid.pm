@@ -44,7 +44,7 @@ sub take_turn {
     if ( @unplayed_development_cards > 0 ) {
 
 	# randomly decide if we want to play one or not before we roll
-	if ( int( rand( 1 ) ) ) {
+	if ( int( rand( 2 ) ) ) {
 
 	    $self->_play_random_development_card( @unplayed_development_cards );
 	    $played_dev_card = 1;
@@ -62,7 +62,7 @@ sub take_turn {
     # decide again if we want to play a development card (if we haven't already)
     if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
 	
-	if ( int( rand( 1 ) ) ) {
+	if ( int( rand( 2 ) ) ) {
 
 	    $self->_play_random_development_card( @unplayed_development_cards );
 	    $played_dev_card = 1;
@@ -100,8 +100,10 @@ sub take_turn {
 	# we cant afford anything!
 	last if ( @buyable == 0 );
 
+	my $meow = int( rand( 2 ) );
+
 	# randomly decide if we want to build anything or not
-        last if ( int( rand( 1 ) ) );
+        last if $meow;
 
 	# randomly choose something to build/buy
         my $num_items = @buyable;
@@ -337,8 +339,6 @@ sub _play_random_development_card {
     my $i = int( rand( @cards ) );
     my $dev_card = $cards[$i];
 
-    warn "playing " . Dumper $dev_card;
-    
     $dev_card->play();
 }
 

@@ -182,7 +182,7 @@ sub buy {
 	push( @{$self->settlements}, $settlement );
 
 	my $city = pop( @{$self->cities} );
-	$self->game->board->set_vertex_attribute( $location, 'building', $city );
+	$self->game->board->graph->set_vertex_attribute( $location, 'building', $city );
     }
 
     elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
