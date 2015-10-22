@@ -3,6 +3,7 @@ package Games::Catan::Board;
 use Moo;
 use Types::Standard qw( Enum ArrayRef InstanceOf );
 use Graph::Undirected;
+use Data::Dumper;
 
 use Games::Catan::Robber;
 use Games::Catan::Board::Tile;
@@ -214,6 +215,109 @@ sub move_robber {
 
     # place the robber on the new tile
     $tile->robber( $self->robber );
+}
+
+sub place_settlement {
+
+    my ( $self, %args ) = @_;
+
+    my $settlement = $args{'settlement'};
+    my $intersection = $args{'intersection'};
+
+    # already a building here?
+    if ( $self->graph->has_vertex_attribute( $intersection, 'building' ) ) {
+
+	die( "Already a building at intersection $intersection." );
+    }
+
+    # place it on the board
+    $self->graph->set_vertex_attribute( $intersection, 'building', $settlement );
+
+    # set its intersection location
+    $settlement->intersection( $intersection );
+}
+
+sub upgrade_settlement {
+
+    my ( $self, $intersection ) = @_;
+
+    # grab existing settlement at this location
+    my $settlement = $self->graph->get_vertex_attribute( $intersection, 'building' );
+
+    if ( !defined $settlement ) {
+
+	die( "No building found at intersection $intersection." );
+    }
+
+    if ( !$settlement->isa( 'Games::Catan::Building::Settlement' ) ) {
+	
+	die( "Intersection $intersection does not have a settlement." );
+    }
+
+    # remove it from the board
+    $self->game->board->graph->delete_vertex_attribute( $intersection, 'building' );
+
+    # clear its intersection location
+    $settlement->clear_intersection();
+
+    # give the settlement back to the player
+    push( @{$settlement->player->settlements}, $settlement );
+
+    # grab one of their cities
+    my $city = pop( @{$settlement->player->cities} );
+
+    # set its intersection location
+    $city->intersection( $intersection );
+
+    # place it on the board
+    $self->graph->set_vertex_attribute( $intersection, 'building', $city );
+}
+
+sub get_valid_settlement_intersections {
+
+    my ( $self, $player ) = @_;
+
+    # can only place their settlements on intersections their roads are attached to
+    my @paths = $self->graph->edges;
+
+    my $intersections = {};
+
+    foreach my $path ( @paths ) {
+
+	my ( $u, $v ) = @$path;
+
+	# no road built on this path
+	next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+
+	my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
+
+	# not this player's road
+	next if ( $road->player->color ne $player->color );
+
+	# both intersections of this road are potential settlement locations
+	$intersections->{$u} = 1;
+	$intersections->{$v} = 1;
+    }
+    
+    # remove those intersections which violate the distance rule (no settlement can be one hop away from another)
+    foreach my $intersection ( keys %$intersections ) {
+
+	my @neighbors = $self->graph->neighbors( $intersection );
+
+	foreach my $neighbor ( @neighbors ) {
+
+	    next if ( !$self->graph->has_vertex_attribute( $neighbor, 'building' ) );
+
+	    # this intersection would violate the distance rule
+	    delete( $intersections->{$intersection} );
+
+	    last;
+	}
+    }
+
+    my @valid_intersections = keys( %$intersections );
+
+    return \@valid_intersections;
 }
 
 1;

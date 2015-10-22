@@ -57,8 +57,10 @@ sub take_turn {
     # player must now roll
     $self->game->roll( $self );
 
-    # normally, trading would be done here
-    
+    #
+    # TODO: trading
+    #
+
     # decide again if we want to play a development card (if we haven't already)
     if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
 	
@@ -75,16 +77,25 @@ sub take_turn {
     # potentially build/buy stuff
     while ( 1 ) {
 
-	my @buyable = ();
-	
+	my @buyable = ();	
+
+	my $settlement_intersections;
+	my $road_paths;
+
 	if ( @{$self->roads} > 0 && $self->can_afford( $self->roads->[0] ) ) {
 
-	    push( @buyable, $self->roads->[0] );
+	    # also make sure there is somewhere on the board we can build one
+	    $road_paths = $self->get_possible_road_paths();
+
+	    push( @buyable, $self->roads->[0] ) if ( @$road_paths > 0 );
 	}
 
 	if ( @{$self->settlements} > 0 && $self->can_afford( $self->settlements->[0] ) ) {
 
-	    push( @buyable, $self->settlements->[0] );
+	    # also make sure there is somewhere on the board we can build one
+	    $settlement_intersections = $self->get_possible_settlement_intersections();
+
+	    push( @buyable, $self->settlements->[0] ) if ( @$settlement_intersections > 0 );
 	}
 
 	if ( @{$self->cities} > 0 && $self->can_afford( $self->cities->[0] ) ) {
@@ -98,12 +109,12 @@ sub take_turn {
 	}
 
 	# we cant afford anything!
-	last if ( @buyable == 0 );
+	last if ( @buyable == 0 );	
 
-	my $meow = int( rand( 2 ) );
+	my $rand = int( rand( 2 ) );
 
 	# randomly decide if we want to build anything or not
-        last if $meow;
+        last if $rand;
 
 	# randomly choose something to build/buy
         my $num_items = @buyable;
@@ -135,10 +146,33 @@ sub take_turn {
 	    }
 
 	    my $num = @options;
-	    $location = int( rand( $num ) );
+	    my $i = int( rand( $num ) );
+	    my $location = $options[$i];
 
 	    $self->buy( $item, $location );
-	}	
+	}
+
+	# are we building a new settlement?
+	elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
+
+	    # randomly choose which intersection to build it at
+	    my $num = @$settlement_intersections;
+	    my $i = int( rand( $num ) );
+	    my $intersection = $settlement_intersections->[$i];
+
+	    $self->buy( $item, $intersection );
+	}
+
+	# are we building a new road?
+	elsif ( $item->isa( 'Games::Catan::Road' ) ) {
+
+            # randomly choose which path to build it at
+            my $num = @$road_paths;
+            my $i = int( rand( $num ) );
+            my $path = $road_paths->[$i];
+
+            $self->buy( $item, $path );
+	}
 
 	# it's possible we won the game now
 	return if $self->game->winner;
@@ -324,8 +358,10 @@ sub _place_starting_settlement {
 
 	my ( $int1, $int2 ) = @$path;
 
+	# already a road built on this path
 	next if $graph->has_edge_attribute( $int1, $int2, "road" );
 
+	# take one of our roads and place it on the board
 	my $road = pop( @{$self->roads} );
 	$graph->set_edge_attribute( $int1, $int2, "road", $road );
     }

@@ -99,7 +99,7 @@ sub play {
     $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
     # continue playing until there is a winner
-    while ( !$self->winner ) {
+    while ( !$self->winner ) {	
 
         # whose turn is it?
         my $player = $self->players->[$self->turn];
@@ -109,6 +109,13 @@ sub play {
 
         # it will be the next player's turn
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
+
+	#warn "\nScore:\n\n";
+
+	#foreach my $player ( @{$self->players} ) {
+
+	#    warn $player->color, ": " , $player->get_score, "\n";
+	#}
 
 	$self->check_winner();
     }

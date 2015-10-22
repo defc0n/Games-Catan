@@ -2,6 +2,7 @@ package Games::Catan::Player;
 
 use Moo::Role;
 use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf );
+use Data::Dumper;
 
 use Games::Catan::Building::Settlement;
 use Games::Catan::Building::City;
@@ -29,11 +30,6 @@ has roads => ( is => 'ro',
                isa => ArrayRef[InstanceOf['Games::Catan::Road']],
                required => 0,
                default => sub { [] } );
-
-#has resource_cards => ( is => 'ro',
-#                        isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard']],
-#                        required => 0,
-#                        default => sub { [] } );
 
 has brick => ( is => 'ro',
 	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
@@ -137,7 +133,7 @@ sub can_afford {
 
     my ( $self, $item ) = @_;
 
-    my $cost = $item->cost;
+    my $cost = $item->cost;    
 
     return 0 if ( @{$self->brick} < $cost->brick );
     return 0 if ( @{$self->lumber} < $cost->lumber );
@@ -157,7 +153,7 @@ sub can_afford {
 
 sub buy {
 
-    my ( $self, $item, $location, $location2 ) = @_;
+    my ( $self, $item, $location ) = @_;
 
     my $cost = $item->cost;
 
@@ -176,25 +172,29 @@ sub buy {
     # if we're upgrading a settlement to a city, we need to know which settlement, and we get it back in our pile
     if ( $item->isa( 'Games::Catan::Building::City' ) ) {
 
-	my $settlement = $self->game->board->graph->get_vertex_attribute( $location, 'building' );
-	$self->game->board->graph->delete_vertex_attribute( $location, 'building' );
+	warn $self->color, " upgraded to a city.";
 
-	push( @{$self->settlements}, $settlement );
-
-	my $city = pop( @{$self->cities} );
-	$self->game->board->graph->set_vertex_attribute( $location, 'building', $city );
+	$self->game->board->upgrade_settlement( $location );
     }
 
     elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
 
+	warn $self->color, " built a settlement.";
+
 	my $settlement = pop( @{$self->settlements} );
-	$self->game->board->graph->set_vertex_attribute( $location, 'building', $settlement );
+
+	$self->game->board->place_settlement( settlement => $settlement,
+					      intersection => $location );
     }
 
     elsif ( $item->isa( 'Games::Catan::Road' ) ) {
 
+	warn $self->color, " built a road.";
+
+	my ( $u, $v ) = @$location;
 	my $road = pop( @{$self->roads} );
-	$self->game->board->graph->set_edge_attribute( $location, $location2, 'road', $road );
+
+	$self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
     }
 
     elsif ( $item->isa( 'Games::Catan::DevelopmentCard' ) ) {
@@ -231,6 +231,133 @@ sub get_played_settlements {
     }
 
     return $settlements;
+}
+
+sub get_played_roads {
+
+    my ( $self ) = @_;
+
+    my $graph = $self->game->board->graph;
+    my @edges = $graph->edges;
+
+    my $roads = [];
+
+    foreach my $edge ( @edges ) {
+
+	my ( $u, $v ) = @$edge;
+
+	next if !$graph->has_edge_attribute( $u, $v, 'road' );
+
+	my $road = $graph->get_edge_attribute( $u, $v, 'road' );
+	my $player = $road->player;
+
+	next if ( $player->color ne $self->color );
+
+	push( @$roads, $road );
+    }
+
+    return $roads;
+}
+
+sub get_possible_road_paths {
+
+    my ( $self ) = @_;
+
+    my @paths = $self->game->board->graph->edges;
+
+    my $valid_paths = [];
+
+    foreach my $path ( @paths ) {
+
+	my ( $u, $v ) = @$path;
+
+	# make sure there is not already a road on this path
+	next if ( $self->game->board->graph->has_edge_attribute( $u, $v, 'road' ) );
+
+	# make sure we have a road adjacent to this path
+	my @adjacent_paths = ( $self->game->board->graph->edges_at( $u ),
+			       $self->game->board->graph->edges_at( $v ) );
+
+	my $found_adjacent = 0;
+
+	foreach my $adjacent_path ( @adjacent_paths ) {
+
+	    my ( $u2, $v2 ) = @$adjacent_path;
+
+	    # this is the same path we're trying to build on
+	    next if ( ( $u == $u2 && $v == $v2 ) || ( $u == $v2 && $v == $u2 ) );
+
+	    # no adjacent road built here
+	    next if ( !$self->game->board->graph->has_edge_attribute( $u2, $v2, 'road' ) );
+
+	    my $adjacent_road = $self->game->board->graph->get_edge_attribute( $u2, $v2,'road' );
+
+	    # a different player's road, not ours
+	    next if ( $adjacent_road->player->color ne $self->color );
+
+	    $found_adjacent = 1;
+	    last;
+	}
+
+	push( @$valid_paths, $path ) if $found_adjacent;
+    }
+
+    return $valid_paths;
+}
+
+sub get_possible_settlement_intersections {
+
+    my ( $self ) = @_;
+
+    # can only place their settlements on intersections their roads are attached to
+    my @paths = $self->game->board->graph->edges;
+
+    my $intersections = {};
+
+    foreach my $path ( @paths ) {
+
+        my ( $u, $v ) = @$path;
+
+        # no road built on this path
+        next if ( !$self->game->board->graph->has_edge_attribute( $u, $v, 'road' ) );
+
+        my $road = $self->game->board->graph->get_edge_attribute( $u, $v, 'road' );
+
+        # not this player's road
+        next if ( $road->player->color ne $self->color );
+
+	# make sure there is not already a building at these vertices
+	if ( !$self->game->board->graph->has_vertex_attribute( $u, 'building' ) ) {
+
+	    $intersections->{$u} = 1;
+	}
+
+	if ( !$self->game->board->graph->has_vertex_attribute( $v, 'building' ) ) {
+
+	    $intersections->{$v} = 1;
+	}
+    }
+
+    # remove those intersections which violate the distance rule (no settlement can be one hop away from another)
+    foreach my $intersection ( keys %$intersections ) {
+
+        my @neighbors = $self->game->board->graph->neighbors( $intersection );
+
+	# see if any of its neighbors have a building already
+        foreach my $neighbor ( @neighbors ) {
+
+            # this intersection would violate the distance rule
+            if ( $self->game->board->graph->has_vertex_attribute( $neighbor, 'building' ) ) {
+
+		delete( $intersections->{$intersection} );
+		last;
+	    }
+        }
+    }
+
+    my @valid_intersections = keys( %$intersections );
+
+    return \@valid_intersections;
 }
 
 sub steal_resource_card {

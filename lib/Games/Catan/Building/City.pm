@@ -15,6 +15,6 @@ has cost => ( is => 'ro',
 	      required => 0,
               default => sub { Games::Catan::Cost->new( ore => 3,
 						        grain => 2,
-							settlement => 1 ) } );
+							settlements => 1 ) } );
 
 1;
