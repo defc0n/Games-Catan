@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 use Data::Dumper;
 
 use Games::Catan;
@@ -17,4 +17,5 @@ is( @{$player->cities}, 4, '4 cities' );
 is( @{$player->roads}, 15, '15 roads' );
 is( @{$player->get_resource_cards()}, 0, '0 resource cards' );
 is( @{$player->development_cards}, 0, '0 development cards' );
-is( @{$player->special_cards}, 0, '0 special cards' );
+is( $player->largest_army, undef, 'no largest army' );
+is( $player->longest_road, undef, 'no longest road' );

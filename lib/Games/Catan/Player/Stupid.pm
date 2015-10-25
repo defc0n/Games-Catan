@@ -112,12 +112,11 @@ sub take_turn {
 	# we cant afford anything!
 	last if ( @buyable == 0 );	
 
-	my $rand = int( rand( 2 ) );
-
 	# randomly decide if we want to build anything or not
+	my $rand = int( rand( 2 ) );
         last if $rand;
 
-	# randomly choose something to build/buy
+	# randomly choose something we're able to buy/build
         my $num_items = @buyable;
 	my $i = int( rand( $num_items ) );
         my $item = $buyable[$i];
@@ -150,7 +149,7 @@ sub take_turn {
 	    my $i = int( rand( $num ) );
 	    my $location = $options[$i];
 
-	    $self->buy( $item, $location );
+	    $self->upgrade_settlement( $location );
 	}
 
 	# are we building a new settlement?
@@ -161,7 +160,7 @@ sub take_turn {
 	    my $i = int( rand( $num ) );
 	    my $intersection = $settlement_intersections->[$i];
 
-	    $self->buy( $item, $intersection );
+	    $self->build_settlement( $intersection );
 	}
 
 	# are we building a new road?
@@ -172,13 +171,13 @@ sub take_turn {
             my $i = int( rand( $num ) );
             my $path = $road_paths->[$i];
 
-            $self->buy( $item, $path );
+	    $self->build_road( $path );
 	}
 
 	# must be buying a development card
 	else {
 
-	    $self->buy( $item );
+	    $self->buy_development_card();
 	}
 
 	# have we won the game now?

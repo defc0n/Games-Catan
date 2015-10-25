@@ -202,7 +202,7 @@ sub update_largest_army {
 		$self->logger->info( "largest army acquired by " . $player->color );
 
 		$self->largest_army->player( $player );
-		push( @{$player->special_cards}, $self->largest_army );
+		$player->largest_army( $self->largest_army );
 
 		last;
 	    }
@@ -227,18 +227,7 @@ sub update_largest_army {
 		$self->largest_army->player( $player );
 
 		# take away the largest army card from prior player
-		my $prior_cards = $current_largest_army->special_cards;
-		my $new_cards = [];
-		
-		foreach my $special_card ( @$prior_cards ) {
-
-		    # dont give them back their largest army card
-		    next if ( $special_card->isa( 'Games::Catan::SpecialCard::LargestArmy' ) );
-
-		    push( @$new_cards, $special_card );
-		}
-
-		$current_largest_army->special_cards( $new_cards );
+		$current_largest_army->clear_largest_army();
 	    }
 	}
     }

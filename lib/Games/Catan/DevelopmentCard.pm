@@ -29,4 +29,18 @@ has logger => ( is => 'ro',
                 required => 0,
 		default => sub { Log::Any->get_logger() } );
 
+sub buy {
+
+    my ( $self ) = @_;
+
+    my $development_card = shift( @{$self->game->development_cards} );
+    $self->logger->info( $self->player->color . " bought a " . ref $development_card );
+
+    # set player as the owner of the card
+    $development_card->player( $self->player );
+
+    # add it to the list of playerdev cards
+    push( @{$self->player->development_cards}, $development_card );
+}
+
 1;

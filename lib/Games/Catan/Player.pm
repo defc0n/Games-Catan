@@ -1,7 +1,7 @@
 package Games::Catan::Player;
 
 use Moo::Role;
-use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf Int );
+use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf Int Maybe );
 use Data::Dumper;
 
 use Games::Catan::Building::Settlement;
@@ -32,50 +32,55 @@ has roads => ( is => 'rw',
                default => sub { [] } );
 
 has brick => ( is => 'rw',
-	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
-	       required => 0,
-	       default => sub { [] } );
+               isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
+               required => 0,
+               default => sub { [] } );
 
 has lumber => ( is => 'rw',
-	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Lumber']],
-	       required => 0,
-	       default => sub { [] } );
+                isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Lumber']],
+                required => 0,
+                default => sub { [] } );
 
 has wool => ( is => 'rw',
-	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Wool']],
-	      required => 0,
-	      default => sub { [] } );
+              isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Wool']],
+              required => 0,
+              default => sub { [] } );
 
 has grain => ( is => 'rw',
-	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Grain']],
-	       required => 0,
-	       default => sub { [] } );
+               isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Grain']],
+               required => 0,
+               default => sub { [] } );
 
 has ore => ( is => 'rw',
-	     isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Ore']],
-	     required => 0,
-	     default => sub { [] } );
+             isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Ore']],
+             required => 0,
+             default => sub { [] } );
 
 has development_cards => ( is => 'rw',
                            isa => ArrayRef[ConsumerOf['Games::Catan::DevelopmentCard']],
                            required => 0,
                            default => sub { [] } );
 
-has special_cards => ( is => 'rw',
-                       isa => ArrayRef[ConsumerOf['Games::Catan::SpecialCard']],
-                       required => 0,
-                       default => sub { [] } );
+has largest_army => ( is => 'rw',
+                      isa => Maybe[InstanceOf['Games::Catan::SpecialCard::LargestArmy']],
+                      required => 0,
+                      clearer => 1 );
+
+has longest_road => ( is => 'rw',
+                      isa => Maybe[InstanceOf['Games::Catan::SpecialCard::LongestRoad']],
+                      required => 0,
+                      clearer => 1 );
 
 has army_size => ( is => 'rw',
-		   isa => Int,
-		   required => 0,
-		   default => 0,
-		   trigger => 1 );
-		       
+                   isa => Int,
+                   required => 0,
+                   default => 0,
+                   trigger => 1 );
+
 has logger => ( is => 'ro',
                 isa => InstanceOf['Log::Any::Proxy'],
                 required => 0,
-		default => sub { Log::Any->get_logger() } );
+                default => sub { Log::Any->get_logger() } );
 
 sub BUILD {
 
@@ -84,17 +89,17 @@ sub BUILD {
     # give them all their initial settlements, cities, and road pieces
     for ( 1 .. 5 ) {
 
-        push( @{$self->settlements}, Games::Catan::Building::Settlement->new( player => $self ) );
+        push( @{$self->settlements}, Games::Catan::Building::Settlement->new( game => $self->game, player => $self ) );
     }
 
     for ( 1 .. 4 ) {
 
-        push( @{$self->cities}, Games::Catan::Building::City->new( player => $self ) );
+        push( @{$self->cities}, Games::Catan::Building::City->new( game => $self->game, player => $self ) );
     }
 
     for ( 1 .. 15 ) {
 
-        push( @{$self->roads}, Games::Catan::Road->new( player => $self ) );
+        push( @{$self->roads}, Games::Catan::Road->new( game => $self->game, player => $self ) );
     }
 }
 
@@ -144,7 +149,7 @@ sub can_afford {
 
     my ( $self, $item ) = @_;
 
-    my $cost = $item->cost;    
+    my $cost = $item->cost;
 
     return 0 if ( @{$self->brick} < $cost->brick );
     return 0 if ( @{$self->lumber} < $cost->lumber );
@@ -153,81 +158,85 @@ sub can_afford {
     return 0 if ( @{$self->ore} < $cost->ore );
 
     if ( $cost->settlements > 0 ) {
-	
-	my $settlements = $self->get_played_settlements();
-	
-	return 0 if ( @$settlements < $cost->settlements );
+
+        my $settlements = $self->get_played_settlements();
+
+        return 0 if ( @$settlements < $cost->settlements );
     }
-    
+
     return 1;
 }
 
-sub buy {
+sub upgrade_settlement {
 
-    my ( $self, $item, $location ) = @_;
+    my ( $self, $intersection ) = @_;
 
-    my $cost = $item->cost;
+    # grab a city we'll upgrade it to
+    my $city = shift( @{$self->cities} );
 
-    my @brick = splice( @{$self->brick}, 0, $cost->brick );
-    my @lumber = splice( @{$self->lumber}, 0, $cost->lumber );
-    my @wool = splice( @{$self->wool}, 0, $cost->wool );
-    my @grain = splice( @{$self->grain}, 0, $cost->grain );
-    my @ore = splice( @{$self->ore}, 0, $cost->ore );
+    # grab the settlement we're replacing/upgrading
+    my $settlement = $self->game->board->graph->get_vertex_attribute( $intersection, 'building' );
+    $self->game->board->graph->delete_vertex_attribute( $intersection, 'building' );
 
-    push( @{$self->game->bank->brick}, @brick );
-    push( @{$self->game->bank->lumber}, @lumber );
-    push( @{$self->game->bank->wool}, @wool );
-    push( @{$self->game->bank->grain}, @grain );
-    push( @{$self->game->bank->ore}, @ore );
+    # give settlement back to the player
+    push( @{$self->settlements}, $settlement );
 
-    # if we're upgrading a settlement to a city, we need to know which settlement, and we get it back in our pile
-    if ( $item->isa( 'Games::Catan::Building::City' ) ) {
+    # place city on the board in place of prior settlement
+    $self->game->board->graph->set_vertex_attribute( $intersection, 'building', $city );
 
-	$self->logger->info( $self->color . " upgraded to a city." );
+    # pay the bank
+    $self->_buy( $city );
+}
 
-	$self->game->board->upgrade_settlement( $location );
-    }
+sub build_settlement {
 
-    elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
+    my ( $self, $intersection ) = @_;
 
-	$self->logger->info( $self->color . " built a settlement." );
+    # grab one of our settlements to build on the board
+    my $settlement = shift( @{$self->settlements} );
 
-	my $settlement = shift( @{$self->settlements} );
+    # place it on the board
+    $self->game->board->graph->set_vertex_attribute( $intersection, 'building', $settlement );
 
-	$self->game->board->place_settlement( settlement => $settlement,
-					      intersection => $location );
-    }
+    # pay the bank
+    $self->_buy( $settlement );
+}
 
-    elsif ( $item->isa( 'Games::Catan::Road' ) ) {
+sub build_road {
 
-	$self->logger->info( $self->color . " built a road." );
+    my ( $self, $path ) = @_;
 
-	my ( $u, $v ) = @$location;
-	my $road = shift( @{$self->roads} );
+    # grab one of our roads to build on the board
+    my $road = shift( @{$self->roads} );
 
-	$self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
-    }
+    my ( $u, $v ) = @$path;
 
-    # must be development card
-    else {
+    # place it on the board
+    $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
 
-	my $development_card = shift( @{$self->game->development_cards} );
-	$self->logger->info( $self->color . " bought a " . ref $development_card );
+    # pay the bank
+    $self->_buy( $road );
+}
 
-	# set ourself as the owner of the card
-	$development_card->player( $self );
+sub buy_development_card {
 
-	# add it to our list of dev cards
-	push( @{$self->development_cards}, $development_card );
-    }
+    my ( $self ) = @_;
 
-    $self->game->check_winner();
+    # grab one of the game dev cards
+    my $development_card = shift( @{$self->game->development_cards} );
+
+    # give it to the player
+    $development_card->player( $self );
+    push( @{$self->development_cards}, $development_card );
+
+    # pay the bank
+    $self->_buy( $development_card );
 }
 
 sub get_played_settlements {
 
     my ( $self ) = @_;
-   
+
     my $graph = $self->game->board->graph;
     my @vertices = $graph->vertices;
 
@@ -235,17 +244,17 @@ sub get_played_settlements {
 
     foreach my $vertex ( @vertices ) {
 
-	next if !$graph->has_vertex_attribute( $vertex, 'building' );
+        next if !$graph->has_vertex_attribute( $vertex, 'building' );
 
-	my $building = $graph->get_vertex_attribute( $vertex, 'building' );
+        my $building = $graph->get_vertex_attribute( $vertex, 'building' );
 
-	next if !$building->isa( 'Games::Catan::Building::Settlement' );
+        next if !$building->isa( 'Games::Catan::Building::Settlement' );
 
-	my $player = $building->player;
+        my $player = $building->player;
 
-	next if ( $player->color ne $self->color );
+        next if ( $player->color ne $self->color );
 
-	push( @$settlements, $building );
+        push( @$settlements, $building );
     }
 
     return $settlements;
@@ -262,16 +271,16 @@ sub get_played_roads {
 
     foreach my $edge ( @edges ) {
 
-	my ( $u, $v ) = @$edge;
+        my ( $u, $v ) = @$edge;
 
-	next if !$graph->has_edge_attribute( $u, $v, 'road' );
+        next if !$graph->has_edge_attribute( $u, $v, 'road' );
 
-	my $road = $graph->get_edge_attribute( $u, $v, 'road' );
-	my $player = $road->player;
+        my $road = $graph->get_edge_attribute( $u, $v, 'road' );
+        my $player = $road->player;
 
-	next if ( $player->color ne $self->color );
+        next if ( $player->color ne $self->color );
 
-	push( @$roads, $road );
+        push( @$roads, $road );
     }
 
     return $roads;
@@ -287,37 +296,37 @@ sub get_possible_road_paths {
 
     foreach my $path ( @paths ) {
 
-	my ( $u, $v ) = @$path;
+        my ( $u, $v ) = @$path;
 
-	# make sure there is not already a road on this path
-	next if ( $self->game->board->graph->has_edge_attribute( $u, $v, 'road' ) );
+        # make sure there is not already a road on this path
+        next if ( $self->game->board->graph->has_edge_attribute( $u, $v, 'road' ) );
 
-	# make sure we have a road adjacent to this path
-	my @adjacent_paths = ( $self->game->board->graph->edges_at( $u ),
-			       $self->game->board->graph->edges_at( $v ) );
+        # make sure we have a road adjacent to this path
+        my @adjacent_paths = ( $self->game->board->graph->edges_at( $u ),
+                               $self->game->board->graph->edges_at( $v ) );
 
-	my $found_adjacent = 0;
+        my $found_adjacent = 0;
 
-	foreach my $adjacent_path ( @adjacent_paths ) {
+        foreach my $adjacent_path ( @adjacent_paths ) {
 
-	    my ( $u2, $v2 ) = @$adjacent_path;
+            my ( $u2, $v2 ) = @$adjacent_path;
 
-	    # this is the same path we're trying to build on
-	    next if ( ( $u == $u2 && $v == $v2 ) || ( $u == $v2 && $v == $u2 ) );
+            # this is the same path we're trying to build on
+            next if ( ( $u == $u2 && $v == $v2 ) || ( $u == $v2 && $v == $u2 ) );
 
-	    # no adjacent road built here
-	    next if ( !$self->game->board->graph->has_edge_attribute( $u2, $v2, 'road' ) );
+            # no adjacent road built here
+            next if ( !$self->game->board->graph->has_edge_attribute( $u2, $v2, 'road' ) );
 
-	    my $adjacent_road = $self->game->board->graph->get_edge_attribute( $u2, $v2,'road' );
+            my $adjacent_road = $self->game->board->graph->get_edge_attribute( $u2, $v2,'road' );
 
-	    # a different player's road, not ours
-	    next if ( $adjacent_road->player->color ne $self->color );
+            # a different player's road, not ours
+            next if ( $adjacent_road->player->color ne $self->color );
 
-	    $found_adjacent = 1;
-	    last;
-	}
+            $found_adjacent = 1;
+            last;
+        }
 
-	push( @$valid_paths, $path ) if $found_adjacent;
+        push( @$valid_paths, $path ) if $found_adjacent;
     }
 
     return $valid_paths;
@@ -344,16 +353,16 @@ sub get_possible_settlement_intersections {
         # not this player's road
         next if ( $road->player->color ne $self->color );
 
-	# make sure there is not already a building at these vertices
-	if ( !$self->game->board->graph->has_vertex_attribute( $u, 'building' ) ) {
+        # make sure there is not already a building at these vertices
+        if ( !$self->game->board->graph->has_vertex_attribute( $u, 'building' ) ) {
 
-	    $intersections->{$u} = 1;
-	}
+            $intersections->{$u} = 1;
+        }
 
-	if ( !$self->game->board->graph->has_vertex_attribute( $v, 'building' ) ) {
+        if ( !$self->game->board->graph->has_vertex_attribute( $v, 'building' ) ) {
 
-	    $intersections->{$v} = 1;
-	}
+            $intersections->{$v} = 1;
+        }
     }
 
     # remove those intersections which violate the distance rule (no settlement can be one hop away from another)
@@ -361,15 +370,15 @@ sub get_possible_settlement_intersections {
 
         my @neighbors = $self->game->board->graph->neighbors( $intersection );
 
-	# see if any of its neighbors have a building already
+        # see if any of its neighbors have a building already
         foreach my $neighbor ( @neighbors ) {
 
             # this intersection would violate the distance rule
             if ( $self->game->board->graph->has_vertex_attribute( $neighbor, 'building' ) ) {
 
-		delete( $intersections->{$intersection} );
-		last;
-	    }
+                delete( $intersections->{$intersection} );
+                last;
+            }
         }
     }
 
@@ -391,29 +400,29 @@ sub steal_resource_card {
 
     if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
 
-	return shift( @{$self->brick} );
+        return shift( @{$self->brick} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
 
-	return shift( @{$self->lumber} );
+        return shift( @{$self->lumber} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
 
-	return shift( @{$self->wool} );
+        return shift( @{$self->wool} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
 
-	return shift( @{$self->grain} );
+        return shift( @{$self->grain} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
 
-	return shift( @{$self->ore} );
+        return shift( @{$self->ore} );
     }
-    
+
 }
 
 sub get_resource_cards {
@@ -434,17 +443,17 @@ sub _get_building_score {
     my $score = 0;
 
     my @vertices = $self->game->board->graph->vertices;
-    
+
     foreach my $vertex ( @vertices ) {
 
-	my $building = $self->game->board->graph->get_vertex_attribute( $vertex, 'building' );
+        my $building = $self->game->board->graph->get_vertex_attribute( $vertex, 'building' );
 
-	next if !$building;
+        next if !$building;
 
-	my $player = $building->player;
+        my $player = $building->player;
 
-	# not our building
-	next if ( $self->color ne $player->color );
+        # not our building
+        next if ( $self->color ne $player->color );
 
         $score += $building->num_points;
     }
@@ -474,14 +483,36 @@ sub _get_special_card_score {
 
     my $score = 0;
 
-    my $special_cards = $self->special_cards;
+    if ( $self->longest_road ) {
 
-    foreach my $special_card ( @$special_cards ) {
+        $score += $self->longest_road->num_points;
+    }
 
-        $score += $special_card->num_points;
+    if ( $self->largest_army ) {
+
+        $score += $self->largest_army->num_points;
     }
 
     return $score;
+}
+
+sub _buy {
+
+    my ( $self, $item ) = @_;
+
+    my $cost = $item->cost;
+
+    my @brick = splice( @{$self->brick}, 0, $cost->brick );
+    my @lumber = splice( @{$self->lumber}, 0, $cost->lumber );
+    my @wool = splice( @{$self->wool}, 0, $cost->wool );
+    my @grain = splice( @{$self->grain}, 0, $cost->grain );
+    my @ore = splice( @{$self->ore}, 0, $cost->ore );
+
+    push( @{$self->game->bank->brick}, @brick );
+    push( @{$self->game->bank->lumber}, @lumber );
+    push( @{$self->game->bank->wool}, @wool );
+    push( @{$self->game->bank->grain}, @grain );
+    push( @{$self->game->bank->ore}, @ore );
 }
 
 sub _trigger_army_size {
@@ -489,8 +520,8 @@ sub _trigger_army_size {
     my ( $self ) = @_;
 
     $self->logger->info( $self->color . " army size grows to " . $self->army_size );
-		       
-    $self->game->update_largest_army();		       
+
+    $self->game->update_largest_army();
 }
 
 1;
