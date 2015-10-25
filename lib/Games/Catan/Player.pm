@@ -1,7 +1,7 @@
 package Games::Catan::Player;
 
 use Moo::Role;
-use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf );
+use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf Int );
 use Data::Dumper;
 
 use Games::Catan::Building::Settlement;
@@ -21,50 +21,61 @@ has settlements => ( is => 'rw',
                      required => 0,
                      default => sub { [] } );
 
-has cities => ( is => 'ro',
+has cities => ( is => 'rw',
                 isa => ArrayRef[InstanceOf['Games::Catan::Building::City']],
                 required => 0,
                 default => sub { [] } );
 
-has roads => ( is => 'ro',
+has roads => ( is => 'rw',
                isa => ArrayRef[InstanceOf['Games::Catan::Road']],
                required => 0,
                default => sub { [] } );
 
-has brick => ( is => 'ro',
+has brick => ( is => 'rw',
 	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
 	       required => 0,
 	       default => sub { [] } );
 
-has lumber => ( is => 'ro',
+has lumber => ( is => 'rw',
 	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Lumber']],
 	       required => 0,
 	       default => sub { [] } );
 
-has wool => ( is => 'ro',
+has wool => ( is => 'rw',
 	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Wool']],
 	      required => 0,
 	      default => sub { [] } );
 
-has grain => ( is => 'ro',
+has grain => ( is => 'rw',
 	       isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Grain']],
 	       required => 0,
 	       default => sub { [] } );
 
-has ore => ( is => 'ro',
+has ore => ( is => 'rw',
 	     isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Ore']],
 	     required => 0,
 	     default => sub { [] } );
 
-has development_cards => ( is => 'ro',
+has development_cards => ( is => 'rw',
                            isa => ArrayRef[ConsumerOf['Games::Catan::DevelopmentCard']],
                            required => 0,
                            default => sub { [] } );
 
-has special_cards => ( is => 'ro',
+has special_cards => ( is => 'rw',
                        isa => ArrayRef[ConsumerOf['Games::Catan::SpecialCard']],
                        required => 0,
                        default => sub { [] } );
+
+has army_size => ( is => 'rw',
+		   isa => Int,
+		   required => 0,
+		   default => 0,
+		   trigger => 1 );
+		       
+has logger => ( is => 'ro',
+                isa => InstanceOf['Log::Any::Proxy'],
+                required => 0,
+		default => sub { Log::Any->get_logger() } );
 
 sub BUILD {
 
@@ -172,14 +183,14 @@ sub buy {
     # if we're upgrading a settlement to a city, we need to know which settlement, and we get it back in our pile
     if ( $item->isa( 'Games::Catan::Building::City' ) ) {
 
-	warn $self->color, " upgraded to a city.";
+	$self->logger->info( $self->color . " upgraded to a city." );
 
 	$self->game->board->upgrade_settlement( $location );
     }
 
     elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
 
-	warn $self->color, " built a settlement.";
+	$self->logger->info( $self->color . " built a settlement." );
 
 	my $settlement = pop( @{$self->settlements} );
 
@@ -189,7 +200,7 @@ sub buy {
 
     elsif ( $item->isa( 'Games::Catan::Road' ) ) {
 
-	warn $self->color, " built a road.";
+	$self->logger->info( $self->color . " built a road." );
 
 	my ( $u, $v ) = @$location;
 	my $road = pop( @{$self->roads} );
@@ -197,9 +208,16 @@ sub buy {
 	$self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
     }
 
-    elsif ( $item->isa( 'Games::Catan::DevelopmentCard' ) ) {
+    # must be development card
+    else {
 
 	my $development_card = pop( @{$self->game->development_cards} );
+	$self->logger->info( $self->color . " bought a " . ref $development_card );
+
+	# set ourself as the owner of the card
+	$development_card->player( $self );
+
+	# add it to our list of dev cards
 	push( @{$self->development_cards}, $development_card );
     }
 
@@ -462,6 +480,15 @@ sub _get_special_card_score {
     }
 
     return $score;
+}
+
+sub _trigger_army_size {
+
+    my ( $self ) = @_;
+
+    $self->logger->info( $self->color . " army size grows to " . $self->army_size );
+		       
+    $self->game->update_largest_army();		       
 }
 
 1;

@@ -22,6 +22,8 @@ use Games::Catan::DevelopmentCard::Library;
 use Games::Catan::DevelopmentCard::University;
 use Games::Catan::DevelopmentCard::Market;
 
+use Log::Any;
+use Log::Any::Adapter qw( Stderr );
 use List::Util qw( shuffle );
 
 use Data::Dumper;
@@ -63,13 +65,24 @@ has development_cards => ( is => 'rw',
                            isa => ArrayRef[ConsumerOf['Games::Catan::DevelopmentCard']],
                            required => 0 );
 
-has special_cards => ( is => 'rw',
-                       isa => ArrayRef[ConsumerOf['Games::Catan::SpecialCard']],
-                       required => 0 );
+has largest_army => ( is => 'rw',
+		      isa => InstanceOf['Games::Catan::SpecialCard::LargestArmy'],
+		      required => 0,
+		      default => sub { Games::Catan::SpecialCard::LargestArmy->new( game => $_[0] ) } );
+
+has longest_road => ( is => 'rw',
+		      isa => InstanceOf['Games::Catan::SpecialCard::LongestRoad'],
+		      required => 0,
+		      default => sub { Games::Catan::SpecialCard::LongestRoad->new( game => $_[0] ) } );
 
 has winner => ( is => 'rw',
                 isa => ConsumerOf['Games::Catan::Player'],
                 required => 0 );
+
+has logger => ( is => 'ro',
+		isa => InstanceOf['Log::Any::Proxy'],
+		required => 0,
+		default => sub { Log::Any->get_logger() } );
 
 ### public methods ###
 
@@ -104,23 +117,20 @@ sub play {
         # whose turn is it?
         my $player = $self->players->[$self->turn];
 
+	$self->logger->info( "*** " . $player->color . " starts turn" );
+
         # tell the player to take their turn
         $player->take_turn();
 
         # it will be the next player's turn
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
-	#warn "\nScore:\n\n";
-
-	#foreach my $player ( @{$self->players} ) {
-
-	#    warn $player->color, ": " , $player->get_score, "\n";
-	#}
+	$self->logger->info( "*** " . $player->color . " ends turn" );
 
 	$self->check_winner();
     }
 
-    return $self->winner;
+    return $self;
 }
 
 sub roll {
@@ -164,6 +174,68 @@ sub check_winner {
 
 	    $self->winner( $player );
 	    return;
+	}
+    }
+}
+
+sub update_largest_army {
+
+    my ( $self ) = @_;
+
+    my $players = $self->players;
+
+    # who currently has the largest army special card, if anyone
+    my $current_largest_army = $self->largest_army->player;
+
+    # no one currently has the largest army?
+    if ( !$current_largest_army ) {
+
+	# if we find anyone with with an army size of 3, then they have it
+	foreach my $player ( @$players ) {
+
+	    if ( $player->army_size == 3 ) {
+
+		$self->logger->info( "largest army acquired by " . $player->color );
+
+		$self->largest_army->player( $player );
+		push( @{$player->special_cards}, $self->largest_army );
+
+		last;
+	    }
+	}	
+    }
+
+    # someone already has the largest army
+    else {
+
+	# see if a different player now has a larger army than them
+	foreach my $player ( @$players ) {
+
+	    # dont compare them to themselves
+	    next if ( $player->color eq $current_largest_army->color );
+
+	    # found a different player with a larger army size
+	    if ( $player->army_size > $current_largest_army->army_size ) {
+
+		$self->logger->info( "largest army taken away by " . $player->color );
+		
+		# update with the new player
+		$self->largest_army->player( $player );
+
+		# take away the largest army card from prior player
+		my $prior_cards = $current_largest_army->special_cards;
+		my $new_cards = [];
+		
+		foreach my $special_card ( @$prior_cards ) {
+
+		    # dont give them back their largest army card
+		    next if ( $special_card->isa( 'Games::Catan::SpecialCard::LargestArmy' ) );
+
+		    push( @$new_cards, $special_card );
+		}
+
+		$current_largest_army->special_cards( $new_cards );
+	    }
 	}
     }
 }
@@ -334,12 +406,6 @@ sub _setup {
     # shuffle the development card deck
     my @shuffled = shuffle( @{$self->development_cards} );
     $self->development_cards( \@shuffled );
-
-    # create the special largest army and longest road cards
-    my $longest_road = Games::Catan::SpecialCard::LongestRoad->new( game => $self );
-    my $largest_army = Games::Catan::SpecialCard::LargestArmy->new( game => $self );
-
-    $self->special_cards( [$longest_road, $largest_army] );
 
     # setup the game board
     my $board = Games::Catan::Board->new( game => $self );

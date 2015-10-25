@@ -18,9 +18,10 @@ sub take_turn {
     # before we bother rolling, see if we've won the game
     my $score = $self->get_score();
 
-    # we won the game!
+    # we already won the game
     if ( $score >= 10 ) {
 
+	$self->logger->info( $self->color . " claims victory!" );
 	$self->game->winner( $self );
 	return;
     }
@@ -174,8 +175,21 @@ sub take_turn {
             $self->buy( $item, $path );
 	}
 
-	# it's possible we won the game now
-	return if $self->game->winner;
+	# must be buying a development card
+	else {
+
+	    $self->buy( $item );
+	}
+
+	# have we won the game now?
+	$score = $self->get_score();
+
+	if ( $score >= 10 ) {
+
+	    $self->logger->info( $self->color . " claims victory!" );
+	    $self->game->winner( $self );
+	    return;
+	}
     }
 }
 

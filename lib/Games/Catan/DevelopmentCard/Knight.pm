@@ -20,9 +20,13 @@ sub play {
 
     my ( $self ) = @_;
 
-    # ...
+    $self->logger->info( $self->player->color . " played a Knight." );
 
+    # mark this card as being played so it can't be played again in the future
     $self->played( 1 );
+
+    # increase the size of this player's army
+    $self->player->army_size( $self->player->army_size + 1 );
 }
 
 1;

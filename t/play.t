@@ -6,9 +6,8 @@ use Data::Dumper;
 
 use Games::Catan;
 
-my $catan = Games::Catan->new( num_players => 3 );
+my $catan = Games::Catan->new( num_players => 4 );
+my $game = $catan->play();
+ok( $game, 'play()ed game!' );
 
-my $winner = $catan->play();
-ok( $winner, 'play()ed game and found a winner' );
-
-diag( $winner->color . " won the game!" );
+diag( $game->winner->color . " won the game!" );
