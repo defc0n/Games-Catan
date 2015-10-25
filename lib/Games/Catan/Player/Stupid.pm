@@ -311,27 +311,27 @@ sub discard_robber_cards {
 
 	if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
 
-	    push( @removed, pop( @{$self->brick} ) );
+	    push( @removed, shift( @{$self->brick} ) );
 	}
 
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
 
-	    push( @removed, pop( @{$self->lumber} ) );
+	    push( @removed, shift( @{$self->lumber} ) );
 	}
 
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
 
-	    push( @removed, pop( @{$self->wool} ) );
+	    push( @removed, shift( @{$self->wool} ) );
 	}
 
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
 
-	    push( @removed, pop( @{$self->grain} ) );
+	    push( @removed, shift( @{$self->grain} ) );
 	}
 
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
 
-	    push( @removed, pop( @{$self->ore} ) );
+	    push( @removed, shift( @{$self->ore} ) );
 	}
     }
 
@@ -363,7 +363,7 @@ sub _place_starting_settlement {
     }
     
     # place settlement on intersection
-    my $settlement = pop( @{$self->settlements} );       
+    my $settlement = shift( @{$self->settlements} );       
     $graph->set_vertex_attribute( $intersection, "building", $settlement );
 
     my @paths = $graph->edges_at( $intersection );
@@ -376,7 +376,7 @@ sub _place_starting_settlement {
 	next if $graph->has_edge_attribute( $int1, $int2, "road" );
 
 	# take one of our roads and place it on the board
-	my $road = pop( @{$self->roads} );
+	my $road = shift( @{$self->roads} );
 	$graph->set_edge_attribute( $int1, $int2, "road", $road );
     }
 }

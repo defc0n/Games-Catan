@@ -14,7 +14,7 @@ has playable => ( is => 'ro',
 has num_points => ( is => 'ro',
                     isa => Int,
                     required => 0,
-                    default => 1 );
+                    default => 0 );
 
 sub play {
 

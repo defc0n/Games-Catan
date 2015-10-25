@@ -192,7 +192,7 @@ sub buy {
 
 	$self->logger->info( $self->color . " built a settlement." );
 
-	my $settlement = pop( @{$self->settlements} );
+	my $settlement = shift( @{$self->settlements} );
 
 	$self->game->board->place_settlement( settlement => $settlement,
 					      intersection => $location );
@@ -203,7 +203,7 @@ sub buy {
 	$self->logger->info( $self->color . " built a road." );
 
 	my ( $u, $v ) = @$location;
-	my $road = pop( @{$self->roads} );
+	my $road = shift( @{$self->roads} );
 
 	$self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
     }
@@ -211,7 +211,7 @@ sub buy {
     # must be development card
     else {
 
-	my $development_card = pop( @{$self->game->development_cards} );
+	my $development_card = shift( @{$self->game->development_cards} );
 	$self->logger->info( $self->color . " bought a " . ref $development_card );
 
 	# set ourself as the owner of the card
@@ -387,29 +387,31 @@ sub steal_resource_card {
     my $i = int( rand( @$resource_cards ) );
     my $card = $resource_cards->[$i];
 
+    $self->logger->info( ref( $card ) . " stolen from " . $self->color );
+
     if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
 
-	return pop( @{$self->brick} );
+	return shift( @{$self->brick} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
 
-	return pop( @{$self->lumber} );
+	return shift( @{$self->lumber} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
 
-	return pop( @{$self->wool} );
+	return shift( @{$self->wool} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
 
-	return pop( @{$self->grain} );
+	return shift( @{$self->grain} );
     }
 
     elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
 
-	return pop( @{$self->ore} );
+	return shift( @{$self->ore} );
     }
     
 }

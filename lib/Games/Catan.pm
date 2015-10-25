@@ -139,6 +139,8 @@ sub roll {
 
     my $roll = $self->dice->roll();
 
+    $self->logger->info( $player->color . " rolled a $roll." );
+
     # did they activate the robber?
     if ( $roll == 7 ) {
 
@@ -146,6 +148,8 @@ sub roll {
         foreach my $player ( @{$self->players} ) {
 
             if ( @{$player->get_resource_cards()} > 7 ) {
+
+		$self->logger->info( $player->color . " must remove half their cards." );
 
                 $player->discard_robber_cards();
             }
