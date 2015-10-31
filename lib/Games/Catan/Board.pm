@@ -255,7 +255,7 @@ sub upgrade_settlement {
     }
 
     # remove it from the board
-    $self->game->board->graph->delete_vertex_attribute( $intersection, 'building' );
+    $self->graph->delete_vertex_attribute( $intersection, 'building' );
 
     # clear its intersection location
     $settlement->clear_intersection();
@@ -318,6 +318,116 @@ sub get_valid_settlement_intersections {
     my @valid_intersections = keys( %$intersections );
 
     return \@valid_intersections;
+}
+
+sub get_longest_road {
+
+    my ( $self, $player ) = @_;
+
+    my @paths = $self->graph->edges;
+
+    my $current_longest_road = [];
+
+    foreach my $path ( @paths ) {
+
+	my $new_longest_road = $self->_get_longest_road( next_path => $path,
+							 player => $player,
+							 visited_paths => {},
+							 full_path => [] );
+
+	$current_longest_road = $new_longest_road if ( @$new_longest_road > @$current_longest_road );
+    }
+
+    return $current_longest_road;
+}
+
+sub _get_longest_road {
+
+    my ( $self, %args ) = @_;
+
+    my $next_path = $args{'next_path'};
+    my $player = $args{'player'};
+    my $visited_paths = $args{'visited_paths'};
+    my $full_path = $args{'full_path'};
+
+    my ( $u, $v ) = @$next_path;
+
+    # we already visited this adjacent path before
+    return $full_path if ( $visited_paths->{"$u-$v"} );
+
+    # no road built on this path
+    return $full_path if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+
+    # mark this path now as having been visited
+    $visited_paths->{"$u-$v"} = 1;
+
+    my $next_road = $self->graph->get_edge_attribute( $u, $v, 'road' );
+
+    # not our road
+    return $full_path if ( $next_road->player->color ne $player->color );
+
+    # find the next connecting path to traverse
+    my @adjacent_paths = ( $self->graph->edges_at( $u ),
+			   $self->graph->edges_at( $v ) );
+
+    my $adjacent_longest_roads = [];
+
+    foreach my $adjacent_path ( @adjacent_paths ) {
+	
+	my ( $u2, $v2 ) = @$adjacent_path;
+	
+	next if ( $visited_paths->{"$u2-$v2"} );
+
+	# which intersection is connecting this next path?
+	my $intersection = $self->_get_connecting_intersection( $next_path, $adjacent_path );
+
+	# is a different player's building blocking the way?
+	if ( $self->graph->has_vertex_attribute( $intersection, 'building' ) ) {
+
+	    my $building = $self->graph->get_vertex_attribute( $intersection, 'building' );
+
+	    next if ( $building->player->color ne $player->color );
+	}
+
+	warn "adding " . Dumper( $next_path ) . " to full path " . Dumper( $full_path ) . " for adjacent " . Dumper( $adjacent_path );
+
+	my @full_path = @$full_path;
+	push( @full_path, $next_path );
+
+	my %visited_paths = %$visited_paths;
+
+	my $next_longest_road = $self->_get_longest_road( next_path => $adjacent_path,
+							  player => $player,
+							  visited_paths => \%visited_paths,
+							  full_path => \@full_path );
+
+	push( @$adjacent_longest_roads, $next_longest_road );
+    }
+
+    # there were no more adjacent roads to traverse
+    return $full_path if ( @$adjacent_longest_roads == 0 );
+
+    my $longest;
+
+    foreach my $adjacent ( @$adjacent_longest_roads ) {
+
+	my $len = @$adjacent;
+
+	$longest = $adjacent if ( !defined $longest || $len > @$longest );
+    }
+
+    return $longest;
+}
+
+sub _get_connecting_intersection {
+
+    my ( $self, $path1, $path2 ) = @_;
+
+    my ( $u1, $v1 ) = @$path1;
+    my ( $u2, $v2 ) = @$path2;
+
+    return $u1 if ( $u1 == $u2 || $u1 == $v2 );
+    return $v1;
 }
 
 1;

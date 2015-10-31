@@ -233,6 +233,114 @@ sub update_largest_army {
     }
 }
 
+sub update_longest_road {
+
+    my ( $self ) = @_;
+
+    my $players = $self->players;
+
+    # who currently has the longest road special card, if anyone
+    my $current_longest_road_player = $self->longest_road->player;
+
+    # no one currently has it?
+    if ( !$current_longest_road_player ) {
+
+	# if we find anyone with a road length >= 5, then they have it
+        foreach my $player ( @$players ) {
+
+	    my $player_longest_road = $self->board->get_longest_road( $player );
+	    my $len = @$player_longest_road;
+
+            if ( @$player_longest_road >= 5 ) {
+
+		$self->logger->info( "longest road acquired by " . $player->color . " with length $len." );
+
+		warn Dumper $player_longest_road;
+
+                $self->longest_road->player( $player );
+		$player->longest_road( $self->longest_road );
+
+                last;
+            }
+	}
+    }
+
+    # someone already has it
+    else {
+
+	# calculate the current longest road length of the current owner
+	my $current_longest_road = $self->board->get_longest_road( $current_longest_road_player );
+	my $current_longest_road_length = @$current_longest_road;
+
+	my $player_longest_roads = {};
+
+        # see if a different player now has a longer road
+        foreach my $player ( @$players ) {
+
+	    # already calculated current longest road player
+	    next if ( $player->color eq $current_longest_road_player->color );
+
+	    my $player_longest_road = $self->board->get_longest_road( $player );
+	    my $len = @$player_longest_road;
+
+	    $player_longest_roads->{$player->color} = $len;
+	}
+
+	# find which player(s) now have the newest longest road, if any
+	my @road_lengths = values( %$player_longest_roads );
+	my $longest_road = 0;
+
+	foreach my $road_length ( @road_lengths ) {
+
+	    $longest_road = $road_length if ( $road_length > $longest_road );
+	}
+
+	# no player has a longer road than the original owner
+	return if ( $longest_road <= $current_longest_road_length );
+
+	my $new_players = [];
+
+	while ( my ( $player_color, $length ) = each( %$player_longest_roads ) ) {
+
+	    # this player has the new longest road length
+	    push( @$new_players, $player_color ) if ( $length == $longest_road );
+	}
+
+	# was it a tie amongst newer players
+	if ( @$new_players > 1 ) {
+
+	    # longest road goes back to the bank! (this is an edge case but can happen)
+	    $current_longest_road_player->clear_longest_road();
+	    $self->longest_road->clear_player();
+	}
+
+	# one player now has longest road
+	else {
+
+	    my $player_color = $new_players->[0];
+
+	    $self->logger->info( "longest road taken away by " . $player_color );
+
+	    my $new_player;
+
+	    foreach my $player ( @{$self->players} ) {
+
+		next if ( $player->color ne $player_color );
+
+		$new_player = $player;
+		last;
+	    }
+
+	    # remove longest road from former player
+	    $current_longest_road_player->clear_longest_road();
+
+	    # set longest road on new player
+	    $self->longest_road->player( $new_player );
+	    $new_player->longest_road( $self->longest_road );
+	}
+    }
+}
+
 ### private methods ###
 
 sub _get_first_settlements {

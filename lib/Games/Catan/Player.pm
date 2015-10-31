@@ -171,6 +171,8 @@ sub upgrade_settlement {
 
     my ( $self, $intersection ) = @_;
 
+    $self->logger->info( $self->color . " upgraded a settlement to city." );
+
     # grab a city we'll upgrade it to
     my $city = shift( @{$self->cities} );
 
@@ -192,6 +194,8 @@ sub build_settlement {
 
     my ( $self, $intersection ) = @_;
 
+    $self->logger->info( $self->color . " built a settlement." );
+
     # grab one of our settlements to build on the board
     my $settlement = shift( @{$self->settlements} );
 
@@ -200,11 +204,16 @@ sub build_settlement {
 
     # pay the bank
     $self->_buy( $settlement );
+
+    # its possible this could affect who has the longest road
+    $self->game->update_longest_road();
 }
 
 sub build_road {
 
     my ( $self, $path ) = @_;
+
+    $self->logger->info( $self->color . " built a road." );
 
     # grab one of our roads to build on the board
     my $road = shift( @{$self->roads} );
@@ -216,11 +225,16 @@ sub build_road {
 
     # pay the bank
     $self->_buy( $road );
+
+    # its possible this could affect who has the longest road
+    $self->game->update_longest_road();
 }
 
 sub buy_development_card {
 
     my ( $self ) = @_;
+
+    $self->logger->info( $self->color . " bought a development card." );
 
     # grab one of the game dev cards
     my $development_card = shift( @{$self->game->development_cards} );
