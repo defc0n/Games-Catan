@@ -2,11 +2,16 @@ package Games::Catan::Board;
 
 use Moo;
 use Types::Standard qw( Enum ArrayRef InstanceOf );
+
 use Graph::Undirected;
 use Data::Dumper;
 
 use Games::Catan::Robber;
 use Games::Catan::Board::Tile;
+
+use Storable qw( dclone );
+
+no autovivification;
 
 has game => ( is => 'ro',
               isa => InstanceOf['Games::Catan'],
@@ -325,98 +330,124 @@ sub get_longest_road {
     my ( $self, $player ) = @_;
 
     my @paths = $self->graph->edges;
+    my @current_longest_road = ();
 
-    my $current_longest_road = [];
+    # mark all road paths we traverse for this player
+    my $found_paths = [];
 
     foreach my $path ( @paths ) {
 
-	my $new_longest_road = $self->_get_longest_road( next_path => $path,
-							 player => $player,
-							 visited_paths => {},
-							 full_path => [] );
+	my ( $u, $v ) = @$path;
 
-	$current_longest_road = $new_longest_road if ( @$new_longest_road > @$current_longest_road );
+	# only bother starting from intersections that have a road built by this player
+	next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+
+	my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
+
+	next if ( $road->player->color ne $player->color );
+
+	# recurse and track all possible road paths starting from both intersections
+	$self->_traverse_roads( found_paths => $found_paths,
+				player => $player,
+				prior_path => [$u],
+				visited => {},
+				current_path => [$u, $v] );
+
+	$self->_traverse_roads( found_paths => $found_paths,
+				player => $player,
+				prior_path => [$v],
+				visited => {},
+				current_path => [$v, $u] );
     }
 
-    return $current_longest_road;
+    my $count = @$found_paths;
+
+    # find the longest full path traversed
+    my $longest = [];
+
+    foreach my $found_path ( @$found_paths ) {
+
+	my $length = @$found_path;
+	    
+	next if ( $length < @$longest );
+	    
+	$longest = $found_path;
+    }
+    
+    return $longest;
 }
 
-sub _get_longest_road {
+sub _traverse_roads {
 
     my ( $self, %args ) = @_;
 
-    my $next_path = $args{'next_path'};
+    my $found_paths = $args{'found_paths'};
     my $player = $args{'player'};
-    my $visited_paths = $args{'visited_paths'};
-    my $full_path = $args{'full_path'};
+    my $prior_path = $args{'prior_path'};
+    my $visited = $args{'visited'};
+    my $current_path = $args{'current_path'};
 
-    my ( $u, $v ) = @$next_path;
+    my ( $u, $v ) = @$current_path;
 
-    # we already visited this adjacent path before
-    return $full_path if ( $visited_paths->{"$u-$v"} );
+    # we've already visited this road before
+    return if ( $visited->{"$u-$v"} || $visited->{"$v-$u"} );
 
-    # no road built on this path
-    return $full_path if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+    # mark it as now having been visited
+    $visited->{"$u-$v"} = 1;
+    $visited->{"$v-$u"} = 1;
 
-    # mark this path now as having been visited
-    $visited_paths->{"$u-$v"} = 1;
+    # construct the full path we've traversed thus far
+    push( @$prior_path, $v );
 
-    my $next_road = $self->graph->get_edge_attribute( $u, $v, 'road' );
-
-    # not our road
-    return $full_path if ( $next_road->player->color ne $player->color );
+    # mark it as having been visited
+    push( @$found_paths, $prior_path );
 
     # find the next connecting path to traverse
-    my @adjacent_paths = ( $self->graph->edges_at( $u ),
-			   $self->graph->edges_at( $v ) );
+    my @adjacent_paths = $self->graph->edges_at( $v );
 
-    my $adjacent_longest_roads = [];
+    foreach my $adjacent ( @adjacent_paths ) {
 
-    foreach my $adjacent_path ( @adjacent_paths ) {
-	
-	my ( $u2, $v2 ) = @$adjacent_path;
-	
-	next if ( $visited_paths->{"$u2-$v2"} );
+	my ( $u2, $v2 ) = @$adjacent;
 
-	# which intersection is connecting this next path?
-	my $intersection = $self->_get_connecting_intersection( $next_path, $adjacent_path );
+	# don't bother traversing a path we already took
+        next if ( $visited->{"$u2-$v2"} || $visited->{"$v2-$u2"} );
 
-	# is a different player's building blocking the way?
-	if ( $self->graph->has_vertex_attribute( $intersection, 'building' ) ) {
+        # only bother traversing paths that have a road built by this player
+        next if ( !$self->graph->has_edge_attribute( $u2, $v2, 'road' ) );
 
-	    my $building = $self->graph->get_vertex_attribute( $intersection, 'building' );
+        my $adjacent_road = $self->graph->get_edge_attribute( $u2, $v2, 'road' );
 
-	    next if ( $building->player->color ne $player->color );
+	next if ( $adjacent_road->player->color ne $player->color );
+
+        # which intersection is connecting this next path (which direction are we going to)?
+        my $intersection = $self->_get_connecting_intersection( $current_path, $adjacent );
+
+        # is a different player's building blocking the way?
+        if ( $self->graph->has_vertex_attribute( $intersection, 'building' ) ) {
+
+            my $building = $self->graph->get_vertex_attribute( $intersection, 'building' );
+
+	    # we're blocked, cant traverse this adjacent path
+            next if ( $building->player->color ne $player->color );
+        }
+
+	# make new copies of the references before we do recursion
+	my $visited_copy = dclone( $visited );
+	my $prior_path_copy = dclone( $prior_path );
+
+	# make sure we mark the correct order of the intersection we're traversing
+	if ( $adjacent->[0] != $intersection ) {
+
+	    $adjacent = [ $adjacent->[1], $adjacent->[0] ];
 	}
 
-	warn "adding " . Dumper( $next_path ) . " to full path " . Dumper( $full_path ) . " for adjacent " . Dumper( $adjacent_path );
-
-	my @full_path = @$full_path;
-	push( @full_path, $next_path );
-
-	my %visited_paths = %$visited_paths;
-
-	my $next_longest_road = $self->_get_longest_road( next_path => $adjacent_path,
-							  player => $player,
-							  visited_paths => \%visited_paths,
-							  full_path => \@full_path );
-
-	push( @$adjacent_longest_roads, $next_longest_road );
+	# traverse this path too
+        $self->_traverse_roads( found_paths => $found_paths,
+				player => $player,
+                                prior_path => $prior_path_copy,
+                                visited => $visited_copy,
+				current_path => $adjacent );
     }
-
-    # there were no more adjacent roads to traverse
-    return $full_path if ( @$adjacent_longest_roads == 0 );
-
-    my $longest;
-
-    foreach my $adjacent ( @$adjacent_longest_roads ) {
-
-	my $len = @$adjacent;
-
-	$longest = $adjacent if ( !defined $longest || $len > @$longest );
-    }
-
-    return $longest;
 }
 
 sub _get_connecting_intersection {

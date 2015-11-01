@@ -249,13 +249,11 @@ sub update_longest_road {
         foreach my $player ( @$players ) {
 
 	    my $player_longest_road = $self->board->get_longest_road( $player );
-	    my $len = @$player_longest_road;
+	    my $len = @$player_longest_road - 1;
 
-            if ( @$player_longest_road >= 5 ) {
+            if ( $len >= 5 ) {
 
-		$self->logger->info( "longest road acquired by " . $player->color . " with length $len." );
-
-		warn Dumper $player_longest_road;
+		$self->logger->info( "longest road acquired by " . $player->color . " with length $len: " . join( ', ', @$player_longest_road ) );
 
                 $self->longest_road->player( $player );
 		$player->longest_road( $self->longest_road );
@@ -270,7 +268,7 @@ sub update_longest_road {
 
 	# calculate the current longest road length of the current owner
 	my $current_longest_road = $self->board->get_longest_road( $current_longest_road_player );
-	my $current_longest_road_length = @$current_longest_road;
+	my $current_longest_road_length = @$current_longest_road - 1;
 
 	my $player_longest_roads = {};
 
@@ -281,7 +279,7 @@ sub update_longest_road {
 	    next if ( $player->color eq $current_longest_road_player->color );
 
 	    my $player_longest_road = $self->board->get_longest_road( $player );
-	    my $len = @$player_longest_road;
+	    my $len = @$player_longest_road - 1;
 
 	    $player_longest_roads->{$player->color} = $len;
 	}
@@ -308,6 +306,8 @@ sub update_longest_road {
 
 	# was it a tie amongst newer players
 	if ( @$new_players > 1 ) {
+
+	    $self->logger->info( "players " . join( ', ', @$new_players ) . " have tie for longest road, it goes back to the bank!" );
 
 	    # longest road goes back to the bank! (this is an edge case but can happen)
 	    $current_longest_road_player->clear_longest_road();
