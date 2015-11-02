@@ -84,14 +84,20 @@ has logger => ( is => 'ro',
 		required => 0,
 		default => sub { Log::Any->get_logger() } );
 
+### constructor builder ###
+
+sub BUILD {
+
+    my ( $self ) = @_;
+
+    $self->_setup();
+}
+
 ### public methods ###
 
 sub play {
 
     my ( $self ) = @_;
-
-    # set up a new game board etc.
-    $self->_setup();
 
     # randomly determine which player goes first and mark it as their turn
     $self->turn( int( rand( $self->num_players ) ) );
