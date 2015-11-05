@@ -388,7 +388,21 @@ sub _play_random_development_card {
     my $i = int( rand( @cards ) );
     my $dev_card = $cards[$i];
 
-    $dev_card->play();
+    if ( $dev_card->isa( 'Games::Catan::DevelopmentCard::Monopoly' ) ) {
+
+	# pick a random resource to steal from the other players
+	my @resources = ( 'brick', 'grain', 'lumber', 'ore', 'wool' );
+        my $num_items = @resources;
+        my $i = int( rand( $num_items ) );
+        my $resource = $resources[$i];
+
+	$dev_card->play( $resource );
+    }
+    
+    else {
+
+	$dev_card->play();
+    }
 }
 
 1;
