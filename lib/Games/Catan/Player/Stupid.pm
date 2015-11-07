@@ -357,7 +357,8 @@ sub _place_starting_settlement {
     my @neighbors = $graph->neighbors( $intersection );
     
     foreach my $neighbor ( @neighbors ) {
-	
+
+	# this would violate distance rule, find a different intersection to try
 	goto FIND_INTERSECTION if $graph->has_vertex_attribute( $neighbor, "building" );
     }
     
@@ -377,6 +378,9 @@ sub _place_starting_settlement {
 	# take one of our roads and place it on the board
 	my $road = shift( @{$self->roads} );
 	$graph->set_edge_attribute( $int1, $int2, "road", $road );
+
+	# only get to build one road with our settlement
+	last;
     }
 }
 
