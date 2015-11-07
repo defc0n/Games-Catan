@@ -18,6 +18,7 @@ lib/Games/Catan/DevelopmentCard/RoadBuilding.pm
 lib/Games/Catan/DevelopmentCard/University.pm
 lib/Games/Catan/DevelopmentCard/YearOfPlenty.pm
 lib/Games/Catan/Dice.pm
+lib/Games/Catan/Harbor.pm
 lib/Games/Catan/Player.pm
 lib/Games/Catan/Player/Stupid.pm
 lib/Games/Catan/ResourceCard.pm

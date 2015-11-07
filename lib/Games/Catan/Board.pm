@@ -6,6 +6,7 @@ use Types::Standard qw( Enum ArrayRef InstanceOf );
 use Graph::Undirected;
 use Data::Dumper;
 
+use Games::Catan::Harbor;
 use Games::Catan::Robber;
 use Games::Catan::Board::Tile;
 
@@ -206,6 +207,46 @@ sub BUILD {
     $self->robber( $robber );
 
     $self->tiles->[9]->robber( $self->robber );
+
+    # setup the harbors
+    my $brick_harbor = Games::Catan::Harbor->new( brick_ratio => 2 );
+    my $lumber_harbor = Games::Catan::Harbor->new( lumber_ratio => 2);
+    my $wool_harbor = Games::Catan::Harbor->new( wool_ratio => 2 );
+    my $grain_harbor = Games::Catan::Harbor->new( grain_ratio => 2 );
+    my $ore_harbor = Games::Catan::Harbor->new( ore_ratio => 2 );
+
+    my $generic_harbor = Games::Catan::Harbor->new( brick_ratio => 3,
+                                                    lumber_ratio => 3,
+                                                    wool_ratio => 3,
+                                                    grain_ratio => 3,
+                                                    ore_ratio => 3 );
+
+    $self->graph->set_vertex_attribute( 28, 'harbor', $brick_harbor );
+    $self->graph->set_vertex_attribute( 38, 'harbor', $brick_harbor );
+
+    $self->graph->set_vertex_attribute( 14, 'harbor', $lumber_harbor );
+    $self->graph->set_vertex_attribute( 16, 'harbor', $lumber_harbor );
+
+    $self->graph->set_vertex_attribute( 45, 'harbor', $wool_harbor );
+    $self->graph->set_vertex_attribute( 46, 'harbor', $wool_harbor );
+
+    $self->graph->set_vertex_attribute( 3, 'harbor', $grain_harbor );
+    $self->graph->set_vertex_attribute( 4, 'harbor', $grain_harbor );
+
+    $self->graph->set_vertex_attribute( 13, 'harbor', $ore_harbor );
+    $self->graph->set_vertex_attribute( 15, 'harbor', $ore_harbor );
+
+    $self->graph->set_vertex_attribute( 0, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 1, 'harbor', $generic_harbor );
+
+    $self->graph->set_vertex_attribute( 26, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 37, 'harbor', $generic_harbor );
+
+    $self->graph->set_vertex_attribute( 47, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 48, 'harbor', $generic_harbor );
+
+    $self->graph->set_vertex_attribute( 50, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 51, 'harbor', $generic_harbor );
 }
 
 sub move_robber {
@@ -215,7 +256,7 @@ sub move_robber {
     # remove the robber from whatever title they currently are on
     foreach my $tile ( @{$self->tiles} ) {
 
-	$tile->clear_robber();
+        $tile->clear_robber();
     }
 
     # place the robber on the new tile
@@ -232,7 +273,7 @@ sub place_settlement {
     # already a building here?
     if ( $self->graph->has_vertex_attribute( $intersection, 'building' ) ) {
 
-	die( "Already a building at intersection $intersection." );
+        die( "Already a building at intersection $intersection." );
     }
 
     # place it on the board
@@ -251,12 +292,12 @@ sub upgrade_settlement {
 
     if ( !defined $settlement ) {
 
-	die( "No building found at intersection $intersection." );
+        die( "No building found at intersection $intersection." );
     }
 
     if ( !$settlement->isa( 'Games::Catan::Building::Settlement' ) ) {
-	
-	die( "Intersection $intersection does not have a settlement." );
+
+        die( "Intersection $intersection does not have a settlement." );
     }
 
     # remove it from the board
@@ -289,35 +330,35 @@ sub get_valid_settlement_intersections {
 
     foreach my $path ( @paths ) {
 
-	my ( $u, $v ) = @$path;
+        my ( $u, $v ) = @$path;
 
-	# no road built on this path
-	next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+        # no road built on this path
+        next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
 
-	my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
+        my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
 
-	# not this player's road
-	next if ( $road->player->color ne $player->color );
+        # not this player's road
+        next if ( $road->player->color ne $player->color );
 
-	# both intersections of this road are potential settlement locations
-	$intersections->{$u} = 1;
-	$intersections->{$v} = 1;
+        # both intersections of this road are potential settlement locations
+        $intersections->{$u} = 1;
+        $intersections->{$v} = 1;
     }
-    
+
     # remove those intersections which violate the distance rule (no settlement can be one hop away from another)
     foreach my $intersection ( keys %$intersections ) {
 
-	my @neighbors = $self->graph->neighbors( $intersection );
+        my @neighbors = $self->graph->neighbors( $intersection );
 
-	foreach my $neighbor ( @neighbors ) {
+        foreach my $neighbor ( @neighbors ) {
 
-	    next if ( !$self->graph->has_vertex_attribute( $neighbor, 'building' ) );
+            next if ( !$self->graph->has_vertex_attribute( $neighbor, 'building' ) );
 
-	    # this intersection would violate the distance rule
-	    delete( $intersections->{$intersection} );
+            # this intersection would violate the distance rule
+            delete( $intersections->{$intersection} );
 
-	    last;
-	}
+            last;
+        }
     }
 
     my @valid_intersections = keys( %$intersections );
@@ -337,27 +378,27 @@ sub get_longest_road {
 
     foreach my $path ( @paths ) {
 
-	my ( $u, $v ) = @$path;
+        my ( $u, $v ) = @$path;
 
-	# only bother starting from intersections that have a road built by this player
-	next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
+        # only bother starting from intersections that have a road built by this player
+        next if ( !$self->graph->has_edge_attribute( $u, $v, 'road' ) );
 
-	my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
+        my $road = $self->graph->get_edge_attribute( $u, $v, 'road' );
 
-	next if ( $road->player->color ne $player->color );
+        next if ( $road->player->color ne $player->color );
 
-	# recurse and track all possible road paths starting from both intersections
-	$self->_traverse_roads( found_paths => $found_paths,
-				player => $player,
-				prior_path => [$u],
-				visited => {},
-				current_path => [$u, $v] );
+        # recurse and track all possible road paths starting from both intersections
+        $self->_traverse_roads( found_paths => $found_paths,
+                                player => $player,
+                                prior_path => [$u],
+                                visited => {},
+                                current_path => [$u, $v] );
 
-	$self->_traverse_roads( found_paths => $found_paths,
-				player => $player,
-				prior_path => [$v],
-				visited => {},
-				current_path => [$v, $u] );
+        $self->_traverse_roads( found_paths => $found_paths,
+                                player => $player,
+                                prior_path => [$v],
+                                visited => {},
+                                current_path => [$v, $u] );
     }
 
     my $count = @$found_paths;
@@ -367,13 +408,13 @@ sub get_longest_road {
 
     foreach my $found_path ( @$found_paths ) {
 
-	my $length = @$found_path;
-	    
-	next if ( $length < @$longest );
-	    
-	$longest = $found_path;
+        my $length = @$found_path;
+
+        next if ( $length < @$longest );
+
+        $longest = $found_path;
     }
-    
+
     return $longest;
 }
 
@@ -407,9 +448,9 @@ sub _traverse_roads {
 
     foreach my $adjacent ( @adjacent_paths ) {
 
-	my ( $u2, $v2 ) = @$adjacent;
+        my ( $u2, $v2 ) = @$adjacent;
 
-	# don't bother traversing a path we already took
+        # don't bother traversing a path we already took
         next if ( $visited->{"$u2-$v2"} || $visited->{"$v2-$u2"} );
 
         # only bother traversing paths that have a road built by this player
@@ -417,7 +458,7 @@ sub _traverse_roads {
 
         my $adjacent_road = $self->graph->get_edge_attribute( $u2, $v2, 'road' );
 
-	next if ( $adjacent_road->player->color ne $player->color );
+        next if ( $adjacent_road->player->color ne $player->color );
 
         # which intersection is connecting this next path (which direction are we going to)?
         my $intersection = $self->_get_connecting_intersection( $current_path, $adjacent );
@@ -427,26 +468,26 @@ sub _traverse_roads {
 
             my $building = $self->graph->get_vertex_attribute( $intersection, 'building' );
 
-	    # we're blocked, cant traverse this adjacent path
+            # we're blocked, cant traverse this adjacent path
             next if ( $building->player->color ne $player->color );
         }
 
-	# make new copies of the references before we do recursion
-	my $visited_copy = dclone( $visited );
-	my $prior_path_copy = dclone( $prior_path );
+        # make new copies of the references before we do recursion
+        my $visited_copy = dclone( $visited );
+        my $prior_path_copy = dclone( $prior_path );
 
-	# make sure we mark the correct order of the intersection we're traversing
-	if ( $adjacent->[0] != $intersection ) {
+        # make sure we mark the correct order of the intersection we're traversing
+        if ( $adjacent->[0] != $intersection ) {
 
-	    $adjacent = [ $adjacent->[1], $adjacent->[0] ];
-	}
+            $adjacent = [ $adjacent->[1], $adjacent->[0] ];
+        }
 
-	# traverse this path too
+        # traverse this path too
         $self->_traverse_roads( found_paths => $found_paths,
-				player => $player,
+                                player => $player,
                                 prior_path => $prior_path_copy,
                                 visited => $visited_copy,
-				current_path => $adjacent );
+                                current_path => $adjacent );
     }
 }
 
