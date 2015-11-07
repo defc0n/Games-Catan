@@ -304,7 +304,8 @@ sub get_possible_road_paths {
 
     my ( $self ) = @_;
 
-    my @paths = $self->game->board->graph->edges;
+    my $graph = $self->game->board->graph;
+    my @paths = $graph->edges;
 
     my $valid_paths = [];
 
@@ -313,11 +314,11 @@ sub get_possible_road_paths {
         my ( $u, $v ) = @$path;
 
         # make sure there is not already a road on this path
-        next if ( $self->game->board->graph->has_edge_attribute( $u, $v, 'road' ) );
+        next if ( $graph->has_edge_attribute( $u, $v, 'road' ) );
 
         # make sure we have a road adjacent to this path
-        my @adjacent_paths = ( $self->game->board->graph->edges_at( $u ),
-                               $self->game->board->graph->edges_at( $v ) );
+        my @adjacent_paths = ( $graph->edges_at( $u ),
+                               $graph->edges_at( $v ) );
 
         my $found_adjacent = 0;
 
@@ -329,9 +330,9 @@ sub get_possible_road_paths {
             next if ( ( $u == $u2 && $v == $v2 ) || ( $u == $v2 && $v == $u2 ) );
 
             # no adjacent road built here
-            next if ( !$self->game->board->graph->has_edge_attribute( $u2, $v2, 'road' ) );
+            next if ( !$graph->has_edge_attribute( $u2, $v2, 'road' ) );
 
-            my $adjacent_road = $self->game->board->graph->get_edge_attribute( $u2, $v2,'road' );
+            my $adjacent_road = $graph->get_edge_attribute( $u2, $v2,'road' );
 
             # a different player's road, not ours
             next if ( $adjacent_road->player->color ne $self->color );

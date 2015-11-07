@@ -411,6 +411,51 @@ sub _play_random_development_card {
 
 	$dev_card->play( [$resource1, $resource2] );
     }
+
+    elsif ( $dev_card->isa( 'Games::Catan::DevelopmentCard::RoadBuilding' ) ) {
+
+	# make sure we have 2 available roads to build
+	my $num_roads = @{$self->roads};
+	return if ( $num_roads < 2 );
+
+	# all choices we have for placing both roads
+	my $pair_choices = [];
+
+	# determine the current paths we can build on for our first road
+	my $road_paths = $self->get_possible_road_paths();
+	my $num_paths = @$road_paths;
+
+	# can't play it if there are no possible paths to build on
+	return if ( $num_paths == 0 );
+
+	foreach my $first_path ( @$road_paths ) {
+
+	    my ( $u, $v ) = @$first_path;
+
+	    # simulate us placing the path there to find any future available paths
+	    $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $self->roads->[0] );
+
+	    # find what paths we would have if we were to build the first road
+	    my $new_road_paths = $self->get_possible_road_paths();
+	    $num_paths = @$new_road_paths;
+
+	    # remove our simulated road placement
+	    $self->game->board->graph->delete_edge_attribute( $u, $v, 'road' );
+
+	    # add each to our list of possible pair choices
+	    foreach my $second_path ( @$new_road_paths ) {
+
+		push( @$pair_choices, [$first_path, $second_path] );
+	    }
+	}
+    
+	# randomly choose which pair of roads to build
+	my $num_choices = @$pair_choices;
+        my $i = int( rand( $num_choices ) );
+        my $choices = $pair_choices->[$i];
+
+	$dev_card->play( $choices );
+    }
     
     else {
 
