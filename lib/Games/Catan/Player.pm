@@ -78,29 +78,29 @@ has army_size => ( is => 'rw',
                    trigger => 1 );
 
 has brick_ratio => ( is => 'rw',
-		     isa => Enum[qw( 2 3 4 )],
-		     required => 0,
-		     default => 4 );
+                     isa => Enum[qw( 2 3 4 )],
+                     required => 0,
+                     default => 4 );
 
 has lumber_ratio => ( is => 'rw',
-		      isa => Enum[qw( 2 3 4 )],
-		      required => 0,
-		      default => 4 );
+                      isa => Enum[qw( 2 3 4 )],
+                      required => 0,
+                      default => 4 );
 
 has wool_ratio => ( is => 'rw',
-		     isa => Enum[qw( 2 3 4 )],
-		     required => 0,
-		     default => 4 );
+                    isa => Enum[qw( 2 3 4 )],
+                    required => 0,
+                    default => 4 );
 
 has grain_ratio => ( is => 'rw',
-		     isa => Enum[qw( 2 3 4 )],
-		     required => 0,
-		     default => 4 );
+                     isa => Enum[qw( 2 3 4 )],
+                     required => 0,
+                     default => 4 );
 
 has ore_ratio => ( is => 'rw',
-		   isa => Enum[qw( 2 3 4 )],
-		   required => 0,
-		   default => 4 );
+                   isa => Enum[qw( 2 3 4 )],
+                   required => 0,
+                   default => 4 );
 
 has logger => ( is => 'ro',
                 isa => InstanceOf['Log::Any::Proxy'],
@@ -141,6 +141,11 @@ sub place_second_settlement {
 }
 
 sub take_turn {
+
+    die( "Method must be implemented." );
+}
+
+sub offer_trade {
 
     die( "Method must be implemented." );
 }
@@ -274,6 +279,105 @@ sub buy_development_card {
     # pay the bank
     $self->_buy( $development_card );
 }
+
+sub request_trade {
+
+    my ( $self, %args ) = @_;
+
+    my $to = $args{'to'};
+    my $deal = $args{'deal'};
+
+    # trade requests can only come from the current players turn, or
+    # from another player to the current player's turn
+    if ( !$self->is_our_turn() ) {
+
+        my $turn = $self->game->turn;
+        my $turn_player = $self->game->players->[$turn];
+
+        if ( $to->color ne $turn_player->color ) {
+
+            die( "Player not eligible for trade" );
+        }
+    }
+
+    # offer the trade to the player and see if they accept
+    my $accepted = $to->offer_trade( from => $self,
+                                     deal => $deal );
+
+    # deal not accepted, do nothing
+    return if !$accepted;
+
+    $self->logger->info( "trade deal accepted from " . $self->color . " to " . $to->color );
+
+    # exchange all of the resources as part of the trade deal
+    for ( 1 .. $deal->offer_brick ) {
+
+        my $brick = shift( @{$self->brick} );
+
+        push( @{$to->brick}, $brick );
+    }
+
+    for ( 1 .. $deal->offer_lumber ) {
+
+        my $lumber = shift( @{$self->lumber} );
+
+        push( @{$to->lumber}, $lumber );
+    }
+
+    for ( 1 .. $deal->offer_wool ) {
+
+        my $wool = shift( @{$self->wool} );
+
+        push( @{$to->wool}, $wool );
+    }
+
+    for ( 1 .. $deal->offer_grain ) {
+
+        my $grain = shift( @{$self->grain} );
+
+        push( @{$to->grain}, $grain );
+    }
+
+    for ( 1 .. $deal->offer_ore ) {
+
+        my $ore = shift( @{$self->ore} );
+
+        push( @{$to->ore}, $ore );
+    }
+
+    for ( 1 .. $deal->request_brick ) {
+
+        my $brick = shift( @{$to->brick} );
+        push( @{$self->brick}, $brick );
+    }
+
+    for ( 1 .. $deal->request_lumber ) {
+
+        my $lumber = shift( @{$to->lumber} );
+        push( @{$self->lumber}, $lumber );
+    }
+
+    for ( 1 .. $deal->request_wool ) {
+
+        my $wool = shift( @{$to->wool} );
+        push( @{$self->wool}, $wool );
+    }
+
+    for ( 1 .. $deal->request_grain ) {
+
+        my $grain = shift( @{$to->grain} );
+        push( @{$self->grain}, $grain );
+    }
+
+    for ( 1 .. $deal->request_ore ) {
+
+        my $ore = shift( @{$to->ore} );
+        push( @{$self->ore}, $ore );
+    }
+
+    return 1;
+}
+
 
 sub get_played_settlements {
 
@@ -475,6 +579,18 @@ sub get_resource_cards {
     my @cards = ( @{$self->brick}, @{$self->lumber}, @{$self->wool}, @{$self->grain}, @{$self->ore} );
 
     return \@cards;
+}
+
+sub is_our_turn {
+
+    my ( $self ) = @_;
+
+    # whos turn is it
+    my $current_turn = $self->game->turn;
+    my $player = $self->game->players->[$current_turn];
+
+    # is that us?
+    return $self->color eq $player->color;
 }
 
 ### private methods ###

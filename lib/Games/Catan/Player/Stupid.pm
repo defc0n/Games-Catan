@@ -4,6 +4,7 @@ use Moo;
 
 with( 'Games::Catan::Player' );
 
+use Games::Catan::Trade;
 use Data::Dumper;
 
 ### public methods ###
@@ -21,9 +22,9 @@ sub take_turn {
     # we already won the game
     if ( $score >= 10 ) {
 
-	$self->logger->info( $self->color . " claims victory!" );
-	$self->game->winner( $self );
-	return;
+        $self->logger->info( $self->color . " claims victory!" );
+        $self->game->winner( $self );
+        return;
     }
 
     # see if we have any unplayed development cards
@@ -32,170 +33,172 @@ sub take_turn {
 
     foreach my $development_card ( @$development_cards ) {
 
-	# not a playable card
-	next if !$development_card->playable;
+        # not a playable card
+        next if !$development_card->playable;
 
-	# already played this card
-	next if $development_card->played;
+        # already played this card
+        next if $development_card->played;
 
-	push( @unplayed_development_cards, $development_card );
+        push( @unplayed_development_cards, $development_card );
     }
 
     # at least one unplayed dev card
     if ( @unplayed_development_cards > 0 ) {
 
-	# randomly decide if we want to play one or not before we roll
-	if ( int( rand( 2 ) ) ) {
+        # randomly decide if we want to play one or not before we roll
+        if ( int( rand( 2 ) ) ) {
 
-	    $self->_play_random_development_card( @unplayed_development_cards );
-	    $played_dev_card = 1;
+            $self->_play_random_development_card( @unplayed_development_cards );
+            $played_dev_card = 1;
 
-	    # its possible we've won the game now
-	    return if $self->game->winner;
-	}
+            # its possible we've won the game now
+            return if $self->game->winner;
+        }
     }
 
     # player must now roll
     $self->game->roll( $self );
 
-    #
-    # TODO: trading
-    #
+    # time to potentially trade with other players
+    if ( int( rand( 2 ) ) ) {
+
+        $self->_trade();
+    }
 
     # decide again if we want to play a development card (if we haven't already)
     if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
-	
-	if ( int( rand( 2 ) ) ) {
 
-	    $self->_play_random_development_card( @unplayed_development_cards );
-	    $played_dev_card = 1;
+        if ( int( rand( 2 ) ) ) {
 
-	    # its possible we've won the game now
-	    return if $self->game->winner;
-	}
+            $self->_play_random_development_card( @unplayed_development_cards );
+            $played_dev_card = 1;
+
+            # its possible we've won the game now
+            return if $self->game->winner;
+        }
     }
 
     # potentially build/buy stuff
     while ( 1 ) {
 
-	my @buyable = ();	
+        my @buyable = ();
 
-	my $settlement_intersections;
-	my $road_paths;
+        my $settlement_intersections;
+        my $road_paths;
 
-	if ( @{$self->roads} > 0 && $self->can_afford( $self->roads->[0] ) ) {
+        if ( @{$self->roads} > 0 && $self->can_afford( $self->roads->[0] ) ) {
 
-	    # also make sure there is somewhere on the board we can build one
-	    $road_paths = $self->get_possible_road_paths();
+            # also make sure there is somewhere on the board we can build one
+            $road_paths = $self->get_possible_road_paths();
 
-	    push( @buyable, $self->roads->[0] ) if ( @$road_paths > 0 );
-	}
+            push( @buyable, $self->roads->[0] ) if ( @$road_paths > 0 );
+        }
 
-	if ( @{$self->settlements} > 0 && $self->can_afford( $self->settlements->[0] ) ) {
+        if ( @{$self->settlements} > 0 && $self->can_afford( $self->settlements->[0] ) ) {
 
-	    # also make sure there is somewhere on the board we can build one
-	    $settlement_intersections = $self->get_possible_settlement_intersections();
+            # also make sure there is somewhere on the board we can build one
+            $settlement_intersections = $self->get_possible_settlement_intersections();
 
-	    push( @buyable, $self->settlements->[0] ) if ( @$settlement_intersections > 0 );
-	}
+            push( @buyable, $self->settlements->[0] ) if ( @$settlement_intersections > 0 );
+        }
 
-	if ( @{$self->cities} > 0 && $self->can_afford( $self->cities->[0] ) ) {
+        if ( @{$self->cities} > 0 && $self->can_afford( $self->cities->[0] ) ) {
 
-	    push( @buyable, $self->cities->[0] );
-	}
+            push( @buyable, $self->cities->[0] );
+        }
 
-	if ( @{$self->game->development_cards} > 0 && $self->can_afford( $self->game->development_cards->[0] ) ) {
+        if ( @{$self->game->development_cards} > 0 && $self->can_afford( $self->game->development_cards->[0] ) ) {
 
-	    push( @buyable, $self->game->development_cards->[0] );
-	}
+            push( @buyable, $self->game->development_cards->[0] );
+        }
 
-	# we cant afford anything!
-	last if ( @buyable == 0 );	
+        # we cant afford anything!
+        last if ( @buyable == 0 );
 
-	# randomly decide if we want to build anything or not
-	my $rand = int( rand( 2 ) );
+        # randomly decide if we want to build anything or not
+        my $rand = int( rand( 2 ) );
         last if $rand;
 
-	# randomly choose something we're able to buy/build
+        # randomly choose something we're able to buy/build
         my $num_items = @buyable;
-	my $i = int( rand( $num_items ) );
+        my $i = int( rand( $num_items ) );
         my $item = $buyable[$i];
-	my $location;
+        my $location;
 
-	# are we upgrading a settlement to a city?
-	if ( $item->isa( 'Games::Catan::Building::City' ) ) {
+        # are we upgrading a settlement to a city?
+        if ( $item->isa( 'Games::Catan::Building::City' ) ) {
 
-	    # randomly pick one of our played settlements to upgrade
-	    my $graph = $self->game->board->graph;
-	    my @vertices = $graph->vertices;
-	    my @options;
+            # randomly pick one of our played settlements to upgrade
+            my $graph = $self->game->board->graph;
+            my @vertices = $graph->vertices;
+            my @options;
 
-	    foreach my $vertex ( @vertices ) {
+            foreach my $vertex ( @vertices ) {
 
-		next if !$graph->has_vertex_attribute( $vertex, 'building' );
+                next if !$graph->has_vertex_attribute( $vertex, 'building' );
 
-		my $building = $graph->get_vertex_attribute( $vertex, 'building' );
+                my $building = $graph->get_vertex_attribute( $vertex, 'building' );
 
-		next if !$building->isa( 'Games::Catan::Building::Settlement' );
+                next if !$building->isa( 'Games::Catan::Building::Settlement' );
 
-		my $player = $building->player;
+                my $player = $building->player;
 
-		next if ( $player->color ne $self->color );
+                next if ( $player->color ne $self->color );
 
-		push( @options, $vertex );
-	    }
+                push( @options, $vertex );
+            }
 
-	    my $num = @options;
-	    my $i = int( rand( $num ) );
-	    my $location = $options[$i];
+            my $num = @options;
+            my $i = int( rand( $num ) );
+            my $location = $options[$i];
 
-	    $self->upgrade_settlement( $location );
-	}
+            $self->upgrade_settlement( $location );
+        }
 
-	# are we building a new settlement?
-	elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
+        # are we building a new settlement?
+        elsif ( $item->isa( 'Games::Catan::Building::Settlement' ) ) {
 
-	    # randomly choose which intersection to build it at
-	    my $num = @$settlement_intersections;
-	    my $i = int( rand( $num ) );
-	    my $intersection = $settlement_intersections->[$i];
+            # randomly choose which intersection to build it at
+            my $num = @$settlement_intersections;
+            my $i = int( rand( $num ) );
+            my $intersection = $settlement_intersections->[$i];
 
-	    $self->build_settlement( $intersection );
-	}
+            $self->build_settlement( $intersection );
+        }
 
-	# are we building a new road?
-	elsif ( $item->isa( 'Games::Catan::Road' ) ) {
+        # are we building a new road?
+        elsif ( $item->isa( 'Games::Catan::Road' ) ) {
 
             # randomly choose which path to build it at
             my $num = @$road_paths;
             my $i = int( rand( $num ) );
             my $path = $road_paths->[$i];
 
-	    $self->build_road( $path );
-	}
+            $self->build_road( $path );
+        }
 
-	# must be buying a development card
-	else {
+        # must be buying a development card
+        else {
 
-	    $self->buy_development_card();
-	}
+            $self->buy_development_card();
+        }
 
-	# have we won the game now?
-	$score = $self->get_score();
+        # have we won the game now?
+        $score = $self->get_score();
 
-	if ( $score >= 10 ) {
+        if ( $score >= 10 ) {
 
-	    $self->logger->info( $self->color . " claims victory!" );
-	    $self->game->winner( $self );
-	    return;
-	}
+            $self->logger->info( $self->color . " claims victory!" );
+            $self->game->winner( $self );
+            return;
+        }
     }
 }
 
 sub place_first_settlement {
-    
+
     my ( $self ) = @_;
-    
+
     $self->_place_starting_settlement();
 }
 
@@ -230,57 +233,98 @@ sub activate_robber {
 
     foreach my $vertex ( @$vertices ) {
 
-	next if !$graph->has_vertex_attribute( $vertex, 'building' );
-	
-	my $building = $graph->get_vertex_attribute( $vertex, 'building' );
-	my $player = $building->player;
+        next if !$graph->has_vertex_attribute( $vertex, 'building' );
 
-	# dont rob from ourself
-	next if ( $player->color eq $self->color );
+        my $building = $graph->get_vertex_attribute( $vertex, 'building' );
+        my $player = $building->player;
 
-	# dont rob from them if they have no cards to steal
-	next if ( @{$player->get_resource_cards} == 0 );
+        # dont rob from ourself
+        next if ( $player->color eq $self->color );
 
-	push( @players_to_rob, $player );
+        # dont rob from them if they have no cards to steal
+        next if ( @{$player->get_resource_cards} == 0 );
+
+        push( @players_to_rob, $player );
     }
 
     # was there at least one player to rob from?
     if ( @players_to_rob > 0 ) {
 
-	# randomly pick one of the players to rob from
-	my $num_players = @players_to_rob;
-	my $i = int( rand( $num_players ) );
-	my $player = $players_to_rob[$i];
+        # randomly pick one of the players to rob from
+        my $num_players = @players_to_rob;
+        my $i = int( rand( $num_players ) );
+        my $player = $players_to_rob[$i];
 
-	# randomly pick one of their cards
-	my $card = $player->steal_resource_card();
+        # randomly pick one of their cards
+        my $card = $player->steal_resource_card();
 
-	# its our card now!
-	if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
+        # its our card now!
+        if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
 
-	    push( @{$self->brick}, $card );
-	}
+            push( @{$self->brick}, $card );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
 
-	    push( @{$self->lumber}, $card );
-	}
+            push( @{$self->lumber}, $card );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
 
-	    push( @{$self->wool}, $card );
-	}
+            push( @{$self->wool}, $card );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
 
-	    push( @{$self->grain}, $card );
-	}
+            push( @{$self->grain}, $card );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
 
-	    push( @{$self->ore}, $card );
-	}
+            push( @{$self->ore}, $card );
+        }
     }
+}
+
+sub offer_trade {
+
+    my ( $self, %args ) = @_;
+
+    my $from = $args{'from'};
+    my $deal = $args{'deal'};
+
+    ### we're stupid and don't care who its from, even if they are about to win.
+    ### one could imagine a smarter AI who won't make deals depending upon who
+    ### the trade offer is from.
+
+    my @resources = ( 'brick', 'lumber', 'wool', 'grain', 'ore' );
+
+    # verify we have every resource they are requesting
+    foreach my $resource ( @resources ) {
+
+        my $request = "request_$resource";
+
+        # they aren't requesting any of this resource
+        next if ( !$deal->$request() );
+
+        # reject the trade deal if we don't have any of this resource they want
+        return 0 if ( @{$self->$resource()} == 0 );
+    }
+
+    # verify we want the resource they are offering
+    foreach my $resource ( @resources ) {
+
+        my $offer = "offer_$resource";
+
+        # they aren't offering any of this resource
+        next if ( !$deal->$offer() );
+
+        # reject the trade deal if we already have some of what they are offering
+        return 0 if ( @{$self->$resource()} > 0 );
+    }
+
+    # we are accepting this trade offer
+    return 1;
 }
 
 sub discard_robber_cards {
@@ -293,45 +337,45 @@ sub discard_robber_cards {
     my $num = int( @$resource_cards / 2 );
 
     my $cards = [];
-    
+
     for ( my $i = 0; $i < $num; $i++ ) {
-	
+
         # randomly pick one of our cards to remove
         my $num_cards = @$resource_cards;
         my $j = int( rand( $num_cards ) );
-	my $card = splice( @$resource_cards, $j, 1 );
+        my $card = splice( @$resource_cards, $j, 1 );
 
-	push( @$cards, $card );	
+        push( @$cards, $card );
     }
 
     my @removed;
 
     foreach my $card ( @$cards ) {
 
-	if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
+        if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
 
-	    push( @removed, shift( @{$self->brick} ) );
-	}
+            push( @removed, shift( @{$self->brick} ) );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
 
-	    push( @removed, shift( @{$self->lumber} ) );
-	}
+            push( @removed, shift( @{$self->lumber} ) );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
 
-	    push( @removed, shift( @{$self->wool} ) );
-	}
+            push( @removed, shift( @{$self->wool} ) );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
 
-	    push( @removed, shift( @{$self->grain} ) );
-	}
+            push( @removed, shift( @{$self->grain} ) );
+        }
 
-	elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
+        elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
 
-	    push( @removed, shift( @{$self->ore} ) );
-	}
+            push( @removed, shift( @{$self->ore} ) );
+        }
     }
 
     $self->game->bank->give_resource_cards( \@removed );
@@ -346,41 +390,41 @@ sub _place_starting_settlement {
     my $graph = $self->game->board->graph;
 
     # keep trying until we find a valid location
-    FIND_INTERSECTION:
-    
+  FIND_INTERSECTION:
+
     my $intersection = $graph->random_vertex;
 
     # this intersection is already occupied!
     goto FIND_INTERSECTION if $graph->has_vertex_attribute( $intersection, "building" );
-    
+
     # make sure we don't violate the distance rule
     my @neighbors = $graph->neighbors( $intersection );
-    
+
     foreach my $neighbor ( @neighbors ) {
 
-	# this would violate distance rule, find a different intersection to try
-	goto FIND_INTERSECTION if $graph->has_vertex_attribute( $neighbor, "building" );
+        # this would violate distance rule, find a different intersection to try
+        goto FIND_INTERSECTION if $graph->has_vertex_attribute( $neighbor, "building" );
     }
-    
+
     # place settlement on intersection
-    my $settlement = shift( @{$self->settlements} );       
+    my $settlement = shift( @{$self->settlements} );
     $graph->set_vertex_attribute( $intersection, "building", $settlement );
 
     my @paths = $graph->edges_at( $intersection );
 
     foreach my $path ( @paths ) {
 
-	my ( $int1, $int2 ) = @$path;
+        my ( $int1, $int2 ) = @$path;
 
-	# already a road built on this path
-	next if $graph->has_edge_attribute( $int1, $int2, "road" );
+        # already a road built on this path
+        next if $graph->has_edge_attribute( $int1, $int2, "road" );
 
-	# take one of our roads and place it on the board
-	my $road = shift( @{$self->roads} );
-	$graph->set_edge_attribute( $int1, $int2, "road", $road );
+        # take one of our roads and place it on the board
+        my $road = shift( @{$self->roads} );
+        $graph->set_edge_attribute( $int1, $int2, "road", $road );
 
-	# only get to build one road with our settlement
-	last;
+        # only get to build one road with our settlement
+        last;
     }
 }
 
@@ -397,73 +441,135 @@ sub _play_random_development_card {
 
     if ( $dev_card->isa( 'Games::Catan::DevelopmentCard::Monopoly' ) ) {
 
-	# pick a random resource to steal from the other players
+        # pick a random resource to steal from the other players
         my $i = int( rand( $num_resources ) );
         my $resource = $resources[$i];
 
-	$dev_card->play( $resource );
+        $dev_card->play( $resource );
     }
 
     elsif ( $dev_card->isa( 'Games::Catan::DevelopmentCard::YearOfPlenty' ) ) {
 
-	# pick two resources (could be the same type) to take from the bank
-	my $i = int( rand( $num_resources ) );
-	my $j = int( rand( $num_resources ) );
+        # pick two resources (could be the same type) to take from the bank
+        my $i = int( rand( $num_resources ) );
+        my $j = int( rand( $num_resources ) );
 
-	my $resource1 = $resources[$i];
-	my $resource2 = $resources[$j];
+        my $resource1 = $resources[$i];
+        my $resource2 = $resources[$j];
 
-	$dev_card->play( [$resource1, $resource2] );
+        $dev_card->play( [$resource1, $resource2] );
     }
 
     elsif ( $dev_card->isa( 'Games::Catan::DevelopmentCard::RoadBuilding' ) ) {
 
-	# make sure we have 2 available roads to build
-	my $num_roads = @{$self->roads};
-	return if ( $num_roads < 2 );
+        # make sure we have 2 available roads to build
+        my $num_roads = @{$self->roads};
+        return if ( $num_roads < 2 );
 
-	# all choices we have for placing both roads
-	my $pair_choices = [];
+        # all choices we have for placing both roads
+        my $pair_choices = [];
 
-	# determine the current paths we can build on for our first road
-	my $road_paths = $self->get_possible_road_paths();
-	my $num_paths = @$road_paths;
+        # determine the current paths we can build on for our first road
+        my $road_paths = $self->get_possible_road_paths();
+        my $num_paths = @$road_paths;
 
-	# can't play it if there are no possible paths to build on
-	return if ( $num_paths == 0 );
+        # can't play it if there are no possible paths to build on
+        return if ( $num_paths == 0 );
 
-	foreach my $first_path ( @$road_paths ) {
+        foreach my $first_path ( @$road_paths ) {
 
-	    my ( $u, $v ) = @$first_path;
+            my ( $u, $v ) = @$first_path;
 
-	    # simulate us placing the path there to find any future available paths
-	    $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $self->roads->[0] );
+            # simulate us placing the path there to find any future available paths
+            $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $self->roads->[0] );
 
-	    # find what paths we would have if we were to build the first road
-	    my $new_road_paths = $self->get_possible_road_paths();
-	    $num_paths = @$new_road_paths;
+            # find what paths we would have if we were to build the first road
+            my $new_road_paths = $self->get_possible_road_paths();
+            $num_paths = @$new_road_paths;
 
-	    # remove our simulated road placement
-	    $self->game->board->graph->delete_edge_attribute( $u, $v, 'road' );
+            # remove our simulated road placement
+            $self->game->board->graph->delete_edge_attribute( $u, $v, 'road' );
 
-	    # add each to our list of possible pair choices
-	    foreach my $second_path ( @$new_road_paths ) {
+            # add each to our list of possible pair choices
+            foreach my $second_path ( @$new_road_paths ) {
 
-		push( @$pair_choices, [$first_path, $second_path] );
-	    }
-	}
-    
-	# randomly choose which pair of roads to build
-	my $num_choices = @$pair_choices;
+                push( @$pair_choices, [$first_path, $second_path] );
+            }
+        }
+
+        # randomly choose which pair of roads to build
+        my $num_choices = @$pair_choices;
         my $i = int( rand( $num_choices ) );
         my $choices = $pair_choices->[$i];
 
-	$dev_card->play( $choices );
+        $dev_card->play( $choices );
     }
-    
+
     else {
 
-	$dev_card->play();
+        $dev_card->play();
+    }
+}
+
+sub _trade {
+
+    my ( $self ) = @_;
+
+    my $requestable = [];
+    my $offerable = [];
+
+    my @resources = ( 'brick', 'lumber', 'wool', 'grain', 'ore' );
+
+    # check which resources we have and dont have
+    foreach my $resource ( @resources ) {
+
+        # we have this resource
+        if ( @{$self->$resource()} > 0 ) {
+
+            push( @$offerable, "offer_$resource" );
+        }
+
+        # we need this resource
+        else {
+
+            push( @$requestable, "request_$resource" );
+        }
+    }
+
+    my $num_requestable = @$requestable;
+    my $num_offerable = @$offerable;
+
+    # either we dont have anything or dont need anything
+    return if ( $num_requestable == 0 || $num_offerable == 0 );
+
+    # randomly pick which resource to request
+    my $i = int( rand( $num_requestable ) );
+    my $request = $requestable->[$i];
+
+    # randomly pick which resource to offer
+    my $j = int( rand( $num_offerable ) );
+    my $offer = $offerable->[$j];
+
+    # create the trade offer
+    my $trade = Games::Catan::Trade->new( player => $self );
+
+    # only trade 1 and offer 1, cause we're too stupid to try something else
+    $trade->$request( 1 );
+    $trade->$offer( 1 );
+
+    # ask every other player to trade until one accepts
+    my $players = $self->game->players();
+
+    foreach my $player ( @$players ) {
+
+        # dont trade with ourself!
+        next if ( $self->color eq $player->color );
+
+        my $accepted = $self->request_trade( to => $player,
+                                             deal => $trade );
+
+        # found a player to accept our trade, all done
+        last if $accepted;
     }
 }
 
