@@ -206,9 +206,13 @@ sub upgrade_settlement {
     # grab a city we'll upgrade it to
     my $city = shift( @{$self->cities} );
 
+    die( "No more cities" ) if !$city;
+
     # grab the settlement we're replacing/upgrading
     my $settlement = $self->game->board->graph->get_vertex_attribute( $intersection, 'building' );
     $self->game->board->graph->delete_vertex_attribute( $intersection, 'building' );
+
+    die( "No settlement found" ) if ( !$settlement );
 
     # give settlement back to the player
     push( @{$self->settlements}, $settlement );
@@ -228,6 +232,8 @@ sub build_settlement {
 
     # grab one of our settlements to build on the board
     my $settlement = shift( @{$self->settlements} );
+
+    die( "No more settlements" ) if !$settlement;
 
     # place it on the board
     $self->game->board->graph->set_vertex_attribute( $intersection, 'building', $settlement );
@@ -251,6 +257,8 @@ sub build_road {
     # grab one of our roads to build on the board
     my $road = shift( @{$self->roads} );
 
+    die( "No more roads" ) if !$road;
+
     my ( $u, $v ) = @$path;
 
     # place it on the board
@@ -272,6 +280,8 @@ sub buy_development_card {
     # grab one of the game dev cards
     my $development_card = shift( @{$self->game->development_cards} );
 
+    die( "No more development cards" ) if !$development_card;
+
     # give it to the player
     $development_card->player( $self );
     push( @{$self->development_cards}, $development_card );
@@ -280,7 +290,7 @@ sub buy_development_card {
     $self->_buy( $development_card );
 }
 
-sub request_trade {
+sub request_player_trade {
 
     my ( $self, %args ) = @_;
 
@@ -314,12 +324,16 @@ sub request_trade {
 
         my $brick = shift( @{$self->brick} );
 
+        die( "No brick to offer" ) if !$brick;
+
         push( @{$to->brick}, $brick );
     }
 
     for ( 1 .. $deal->offer_lumber ) {
 
         my $lumber = shift( @{$self->lumber} );
+
+        die( "No lumber to offer" ) if !$lumber;
 
         push( @{$to->lumber}, $lumber );
     }
@@ -328,12 +342,16 @@ sub request_trade {
 
         my $wool = shift( @{$self->wool} );
 
+        die( "No wool to offer" ) if !$wool;
+
         push( @{$to->wool}, $wool );
     }
 
     for ( 1 .. $deal->offer_grain ) {
 
         my $grain = shift( @{$self->grain} );
+
+        die( "No grain to offer" ) if !$grain;
 
         push( @{$to->grain}, $grain );
     }
@@ -342,42 +360,138 @@ sub request_trade {
 
         my $ore = shift( @{$self->ore} );
 
+        die( "No ore to offer" ) if !$ore;
+
         push( @{$to->ore}, $ore );
     }
 
     for ( 1 .. $deal->request_brick ) {
 
         my $brick = shift( @{$to->brick} );
+
+        die( "No brick to request" ) if !$brick;
+
         push( @{$self->brick}, $brick );
     }
 
     for ( 1 .. $deal->request_lumber ) {
 
         my $lumber = shift( @{$to->lumber} );
+
+        die( "No lumber to request" ) if !$lumber;
+
         push( @{$self->lumber}, $lumber );
     }
 
     for ( 1 .. $deal->request_wool ) {
 
         my $wool = shift( @{$to->wool} );
+
+        die( "No wool to request" ) if !$wool;
+
         push( @{$self->wool}, $wool );
     }
 
     for ( 1 .. $deal->request_grain ) {
 
         my $grain = shift( @{$to->grain} );
+
+        die( "No grain to request" ) if !$grain;
+
         push( @{$self->grain}, $grain );
     }
 
     for ( 1 .. $deal->request_ore ) {
 
         my $ore = shift( @{$to->ore} );
+
+        die( "No ore to request" ) if !$ore;
+
         push( @{$self->ore}, $ore );
     }
 
     return 1;
 }
 
+sub request_bank_trade {
+
+    my ( $self, %args ) = @_;
+
+    my $deal = $args{'deal'};
+
+    my @resources = ( 'brick', 'lumber', 'wool', 'grain', 'ore' );
+
+    # for a bank trading transaction, only allow offering 1 resource type for
+    # 1 other resource type and not multiple
+    my $offer_resource;
+    my $offer_num;
+    my $request_resource;
+    my $request_num;
+
+    foreach my $resource ( @resources ) {
+
+        my $offer = "offer_$resource";
+        my $request = "request_$resource";
+
+        my $this_offer_num = $deal->$offer();
+        my $this_request_num = $deal->$request();
+
+        # already found a different resource they are offering
+        die( "Invalid transaction" ) if ( defined( $offer_resource ) && $this_offer_num );
+
+        # already found a different resource they are requesting
+        die( "Invalid transaction" ) if ( defined( $request_resource ) && $this_request_num );
+
+        # this is the resource they are offering
+        if ( $this_offer_num ) {
+
+            $offer_resource = $resource;
+            $offer_num = $this_offer_num;
+        }
+
+        # this is the resource they are requesting
+        if ( $this_request_num ) {
+
+            $request_resource = $resource;
+            $request_num = $this_request_num;
+        }
+    }
+
+    # couldn't find any resources they are offering or requesting
+    die( "Invalid transaction" ) if !$offer_resource;
+    die( "Invalid transaction" ) if !$request_resource;
+
+    # dont allow requesting and offering the same resource since that doesn't make sense
+    die( "Invalid transaction" ) if ( $offer_resource eq $request_resource );
+
+    # whats the trade ratio the player has for this resource
+    my $ratio_name = $offer_resource . "_ratio";
+    my $ratio = $self->$ratio_name();
+
+    # verify what they are offering and requesting has the correct ratio
+    die( "Invalid transaction" ) if ( $request_num * $ratio != $offer_num );
+
+    # transaction is sound, exchange resources between player & bank accordingly
+    for ( 1 .. $offer_num ) {
+
+        my $resource = shift( @{$self->$offer_resource()} );
+
+        die( "No more $offer_resource to offer" ) if !$resource;
+
+        push( @{$self->game->bank->$offer_resource()}, $resource );
+    }
+
+    for ( 1 .. $request_num ) {
+
+        my $resource = shift( @{$self->game->bank->$request_resource()} );
+
+        die( "No more $request_resource to request" ) if !$resource;
+
+        push( @{$self->$request_resource()}, $resource );
+    }
+
+    $self->logger->info( $self->color . " exchanged $offer_num $offer_resource for $request_num $request_resource with bank" );
+}
 
 sub get_played_settlements {
 
@@ -569,7 +683,6 @@ sub steal_resource_card {
 
         return shift( @{$self->ore} );
     }
-
 }
 
 sub get_resource_cards {

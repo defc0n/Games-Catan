@@ -59,11 +59,11 @@ sub take_turn {
     # player must now roll
     $self->game->roll( $self );
 
-    # time to potentially trade with other players
-    if ( int( rand( 2 ) ) ) {
+    # potentially trade with the bank
+    $self->_trade_bank() if ( int( rand( 2 ) ) );
 
-        $self->_trade();
-    }
+    # potentially trade with another player
+    $self->_trade_player() if ( int( rand ( 2 ) ) );
 
     # decide again if we want to play a development card (if we haven't already)
     if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
@@ -323,8 +323,8 @@ sub offer_trade {
         return 0 if ( @{$self->$resource()} > 0 );
     }
 
-    # we are accepting this trade offer
-    return 1;
+    # randomly decide whether or not to accept this trade offer
+    return int( rand( 2 ) );
 }
 
 sub discard_robber_cards {
@@ -338,7 +338,7 @@ sub discard_robber_cards {
 
     my $cards = [];
 
-    for ( my $i = 0; $i < $num; $i++ ) {
+    for ( 1 .. $num ) {
 
         # randomly pick one of our cards to remove
         my $num_cards = @$resource_cards;
@@ -511,7 +511,65 @@ sub _play_random_development_card {
     }
 }
 
-sub _trade {
+sub _trade_bank {
+
+    my ( $self ) = @_;
+
+    my @resources = ( 'brick', 'lumber', 'wool', 'grain', 'ore' );
+
+    my $requestable = [];
+    my $offerable = [];
+
+    # check which resources we can offer and those we want
+    foreach my $resource ( @resources ) {
+
+        my $ratio_name = $resource . "_ratio";
+        my $ratio = $self->$ratio_name();
+        my $num_resource = @{$self->$resource()};
+
+        # we have enough of this resource to trade w/ the bank
+        if ( $num_resource >= $ratio ) {
+
+            push( @$offerable, $resource );
+        }
+
+        # we dont have any of this resource, so we can request it
+        elsif ( $num_resource == 0 ) {
+
+            push( @$requestable, $resource );
+        }
+    }
+
+    my $num_requestable = @$requestable;
+    my $num_offerable = @$offerable;
+
+    # either we can't offer anything or dont need anything
+    return if ( $num_requestable == 0 || $num_offerable == 0 );
+
+    # randomly pick which resource to request
+    my $i = int( rand( $num_requestable ) );
+    my $request = $requestable->[$i];
+
+    # randomly pick which resource to offer
+    my $j = int( rand( $num_offerable ) );
+    my $offer = $offerable->[$j];
+
+    # create the trade offer
+    my $trade = Games::Catan::Trade->new( player => $self );
+
+    # only trade the minimum amount, cause we're too stupid to try something else
+    my $ratio_name = $offer . "_ratio";
+    my $offer_name = "offer_$offer";
+    my $request_name = "request_$request";
+    my $ratio = $self->$ratio_name();
+
+    $trade->$request_name( 1 );
+    $trade->$offer_name( $ratio );
+
+    return $self->request_bank_trade( deal => $trade );
+}
+
+sub _trade_player {
 
     my ( $self ) = @_;
 
@@ -565,8 +623,8 @@ sub _trade {
         # dont trade with ourself!
         next if ( $self->color eq $player->color );
 
-        my $accepted = $self->request_trade( to => $player,
-                                             deal => $trade );
+        my $accepted = $self->request_player_trade( to => $player,
+                                                    deal => $trade );
 
         # found a player to accept our trade, all done
         last if $accepted;
