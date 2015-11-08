@@ -77,27 +77,27 @@ has army_size => ( is => 'rw',
                    default => 0,
                    trigger => 1 );
 
-has brick_ratio => ( is => 'ro',
+has brick_ratio => ( is => 'rw',
 		     isa => Enum[qw( 2 3 4 )],
 		     required => 0,
 		     default => 4 );
 
-has lumber_ratio => ( is => 'ro',
+has lumber_ratio => ( is => 'rw',
 		      isa => Enum[qw( 2 3 4 )],
 		      required => 0,
 		      default => 4 );
 
-has wool_ratio => ( is => 'ro',
+has wool_ratio => ( is => 'rw',
 		     isa => Enum[qw( 2 3 4 )],
 		     required => 0,
 		     default => 4 );
 
-has grain_ratio => ( is => 'ro',
+has grain_ratio => ( is => 'rw',
 		     isa => Enum[qw( 2 3 4 )],
 		     required => 0,
 		     default => 4 );
 
-has ore_ratio => ( is => 'ro',
+has ore_ratio => ( is => 'rw',
 		   isa => Enum[qw( 2 3 4 )],
 		   required => 0,
 		   default => 4 );
@@ -232,6 +232,9 @@ sub build_settlement {
 
     # its possible this could affect who has the longest road
     $self->game->update_longest_road();
+
+    # its possible this could affect the players trade ratios
+    $self->game->update_trade_ratios();
 }
 
 sub build_road {

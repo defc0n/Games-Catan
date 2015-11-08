@@ -24,7 +24,7 @@ use Games::Catan::DevelopmentCard::Market;
 
 use Log::Any;
 use Log::Any::Adapter qw( Stderr );
-use List::Util qw( shuffle );
+use List::Util qw( shuffle min );
 
 use Data::Dumper;
 
@@ -111,6 +111,9 @@ sub play {
     # get the players second settlements + roads
     $self->_get_second_settlements();
 
+    # update player harbor trade ratios
+    $self->update_trade_ratios();
+
     # distribute initial resource cards
     $self->_distribute_resource_cards();
 
@@ -185,6 +188,36 @@ sub check_winner {
 	    $self->winner( $player );
 	    return;
 	}
+    }
+}
+
+sub update_trade_ratios {
+
+    my ( $self ) = @_;
+
+    my $graph = $self->board->graph;
+
+    my @intersections = $graph->vertices;
+
+    foreach my $intersection ( @intersections ) {
+
+	# skip this intersection if its not attached to a harbor
+	next if ( !$graph->has_vertex_attribute( $intersection, 'harbor' ) );
+
+	# skip this intersection if there is no building built here
+	next if ( !$graph->has_vertex_attribute( $intersection, 'building' ) );
+
+	my $harbor = $graph->get_vertex_attribute( $intersection, 'harbor' );
+	my $building = $graph->get_vertex_attribute( $intersection, 'building' );
+
+	my $player = $building->player;
+
+	# update the player with any more favorable trade ratios this harbor may provide
+	$player->brick_ratio( min( $harbor->brick_ratio, $player->brick_ratio ) );
+	$player->lumber_ratio( min( $harbor->lumber_ratio, $player->lumber_ratio ) );
+	$player->wool_ratio( min( $harbor->wool_ratio, $player->wool_ratio ) );
+	$player->grain_ratio( min( $harbor->grain_ratio, $player->grain_ratio ) );
+	$player->ore_ratio( min( $harbor->ore_ratio, $player->ore_ratio ) );
     }
 }
 
