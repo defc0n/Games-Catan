@@ -1,4 +1,4 @@
-# Games-Catan
+# Games::Catan
 
 Games::Catan is a suite of Perl libraries that simulate the popular board game [Settlers of Catan](http://www.catan.com).
 
