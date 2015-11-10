@@ -1,6 +1,13 @@
 # Games::Catan
 
-Games::Catan is a suite of Perl libraries that simulate the popular board game [Settlers of Catan](http://www.catan.com).
+Games::Catan is a suite of Perl libraries that simulate the popular board game [Settlers of Catan](http://www.catan.com).  A game can be constructed and played by very primitive AI players by doing:
+
+```perl
+use Games::Catan;
+
+my $catan = Games::Catan->new( num_players => 4 );
+$catan->play();
+```
 
 ## Game Board
 
