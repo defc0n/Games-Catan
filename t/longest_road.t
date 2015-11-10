@@ -24,18 +24,18 @@ for ( 1 .. 100 ) {
 }
 
 # build a "figure 8" out of roads and make sure it has a longest road of length 11
-$player->build_road( [31, 32] );
-$player->build_road( [32, 33] );
-$player->build_road( [33, 21] );
-$player->build_road( [21, 20] );
-$player->build_road( [20, 19] );
-$player->build_road( [19, 31] );
+$player->build_road( [29, 35] );
+$player->build_road( [35, 30] );
+$player->build_road( [30, 24] );
+$player->build_road( [24, 18] );
+$player->build_road( [18, 23] );
+$player->build_road( [23, 29] );
 
-$player->build_road( [20, 10] );
-$player->build_road( [10, 11] );
-$player->build_road( [11, 12] );
-$player->build_road( [12, 22] );
-$player->build_road( [22, 21] );
+$player->build_road( [18, 13] );
+$player->build_road( [13, 9] );
+$player->build_road( [9, 14] );
+$player->build_road( [14, 19] );
+$player->build_road( [19, 24] );
 
 my $longest_road = $board->get_longest_road( $player );
 my $length = @$longest_road - 1;
@@ -51,7 +51,7 @@ for ( 1 .. 100 ) {
     push( @{$player2->grain}, Games::Catan::ResourceCard::Grain->new() );
 }
 
-$player2->build_settlement( 20 );
+$player2->build_settlement( 18 );
 
 $longest_road = $board->get_longest_road( $player );
 $length = @$longest_road - 1;
@@ -59,7 +59,7 @@ $length = @$longest_road - 1;
 is( $length, 10, "longest road with length 10" );
 
 # block it with yet another settlement
-$player2->build_settlement( 21 );
+$player2->build_settlement( 24 );
 
 $longest_road = $board->get_longest_road( $player );
 $length = @$longest_road - 1;

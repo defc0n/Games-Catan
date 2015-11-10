@@ -43,163 +43,163 @@ sub BUILD {
     $self->tiles( [] );
 
     # create the edges/adjacencies between the vertices
-    $self->graph->add_edge( 0, 1 );
-    $self->graph->add_edge( 1, 2 );
-    $self->graph->add_edge( 2, 3 );
-    $self->graph->add_edge( 3, 4 );
-    $self->graph->add_edge( 4, 5 );
-    $self->graph->add_edge( 5, 6 );
+    $self->graph->add_edge( 3, 0 );
+    $self->graph->add_edge( 0, 4 );
+    $self->graph->add_edge( 4, 1 );
+    $self->graph->add_edge( 1, 5 );
+    $self->graph->add_edge( 5, 2 );
+    $self->graph->add_edge( 2, 6 );
 
-    $self->graph->add_edge( 0, 7 );
-    $self->graph->add_edge( 2, 9 );
-    $self->graph->add_edge( 4, 11 );
-    $self->graph->add_edge( 6, 13 );
+    $self->graph->add_edge( 3, 7 );
+    $self->graph->add_edge( 4, 8 );
+    $self->graph->add_edge( 5, 9 );
+    $self->graph->add_edge( 6, 10 );
 
-    $self->graph->add_edge( 7, 8 );
-    $self->graph->add_edge( 8, 9 );
-    $self->graph->add_edge( 9, 10 );
-    $self->graph->add_edge( 10, 11 );
-    $self->graph->add_edge( 11, 12 );
-    $self->graph->add_edge( 12, 13 );
+    $self->graph->add_edge( 7, 12 );
+    $self->graph->add_edge( 12, 8 );
+    $self->graph->add_edge( 8, 13 );
+    $self->graph->add_edge( 13, 9 );
+    $self->graph->add_edge( 9, 14 );
+    $self->graph->add_edge( 14, 10 );
 
-    $self->graph->add_edge( 7, 14 );
-    $self->graph->add_edge( 13, 15 );
+    $self->graph->add_edge( 7, 11 );
+    $self->graph->add_edge( 10, 15 );
 
-    $self->graph->add_edge( 14, 16 );
-    $self->graph->add_edge( 16, 17 );
-    $self->graph->add_edge( 17, 18 );
-    $self->graph->add_edge( 18, 19 );
-    $self->graph->add_edge( 19, 20 );
-    $self->graph->add_edge( 20, 21 );
-    $self->graph->add_edge( 21, 22 );
-    $self->graph->add_edge( 22, 23 );
-    $self->graph->add_edge( 23, 24 );
-    $self->graph->add_edge( 15, 24 );
+    $self->graph->add_edge( 11, 16 );
+    $self->graph->add_edge( 16, 22 );
+    $self->graph->add_edge( 22, 17 );
+    $self->graph->add_edge( 17, 23 );
+    $self->graph->add_edge( 23, 18 );
+    $self->graph->add_edge( 18, 24 );
+    $self->graph->add_edge( 24, 19 );
+    $self->graph->add_edge( 19, 25 );
+    $self->graph->add_edge( 25, 20 );
+    $self->graph->add_edge( 15, 20 );
 
-    $self->graph->add_edge( 8, 18 );
-    $self->graph->add_edge( 10, 20 );
-    $self->graph->add_edge( 12, 22 );
+    $self->graph->add_edge( 12, 17 );
+    $self->graph->add_edge( 13, 18 );
+    $self->graph->add_edge( 14, 19 );
 
-    $self->graph->add_edge( 16, 25 );
-    $self->graph->add_edge( 25, 27 );
-    $self->graph->add_edge( 27, 28 );
-    $self->graph->add_edge( 28, 29 );
-    $self->graph->add_edge( 29, 30 );
-    $self->graph->add_edge( 30, 31 );
-    $self->graph->add_edge( 31, 32 );
-    $self->graph->add_edge( 32, 33 );
-    $self->graph->add_edge( 33, 34 );
-    $self->graph->add_edge( 34, 35 );
-    $self->graph->add_edge( 35, 36 );
-    $self->graph->add_edge( 36, 37 );
-    $self->graph->add_edge( 26, 37 );
-    $self->graph->add_edge( 24, 26 );
+    $self->graph->add_edge( 16, 21 );
+    $self->graph->add_edge( 21, 27 );
+    $self->graph->add_edge( 27, 33 );
+    $self->graph->add_edge( 33, 28 );
+    $self->graph->add_edge( 28, 34 );
+    $self->graph->add_edge( 34, 29 );
+    $self->graph->add_edge( 29, 35 );
+    $self->graph->add_edge( 35, 30 );
+    $self->graph->add_edge( 30, 36 );
+    $self->graph->add_edge( 36, 31 );
+    $self->graph->add_edge( 31, 37 );
+    $self->graph->add_edge( 37, 32 );
+    $self->graph->add_edge( 26, 32 );
+    $self->graph->add_edge( 20, 26 );
 
-    $self->graph->add_edge( 17, 29 );
-    $self->graph->add_edge( 19, 31 );
-    $self->graph->add_edge( 21, 33 );
-    $self->graph->add_edge( 23, 35 );
+    $self->graph->add_edge( 22, 28 );
+    $self->graph->add_edge( 23, 29 );
+    $self->graph->add_edge( 24, 30 );
+    $self->graph->add_edge( 25, 31 );
 
-    $self->graph->add_edge( 28, 38 );
-    $self->graph->add_edge( 38, 39 );
-    $self->graph->add_edge( 39, 40 );
-    $self->graph->add_edge( 40, 41 );
-    $self->graph->add_edge( 41, 42 );
-    $self->graph->add_edge( 42, 43 );
-    $self->graph->add_edge( 43, 44 );
-    $self->graph->add_edge( 44, 45 );
-    $self->graph->add_edge( 45, 46 );
-    $self->graph->add_edge( 36, 46 );
+    $self->graph->add_edge( 33, 38 );
+    $self->graph->add_edge( 38, 43 );
+    $self->graph->add_edge( 43, 39 );
+    $self->graph->add_edge( 39, 44 );
+    $self->graph->add_edge( 44, 40 );
+    $self->graph->add_edge( 40, 45 );
+    $self->graph->add_edge( 45, 41 );
+    $self->graph->add_edge( 41, 46 );
+    $self->graph->add_edge( 46, 42 );
+    $self->graph->add_edge( 37, 42 );
 
-    $self->graph->add_edge( 30, 40 );
-    $self->graph->add_edge( 32, 42 );
-    $self->graph->add_edge( 34, 44 );
+    $self->graph->add_edge( 34, 39 );
+    $self->graph->add_edge( 35, 40 );
+    $self->graph->add_edge( 36, 41 );
 
-    $self->graph->add_edge( 39, 47 );
-    $self->graph->add_edge( 47, 48 );
-    $self->graph->add_edge( 48, 49 );
-    $self->graph->add_edge( 49, 50 );
-    $self->graph->add_edge( 50, 51 );
-    $self->graph->add_edge( 51, 52 );
-    $self->graph->add_edge( 52, 53 );
-    $self->graph->add_edge( 45, 53 );
+    $self->graph->add_edge( 43, 47 );
+    $self->graph->add_edge( 47, 51 );
+    $self->graph->add_edge( 51, 48 );
+    $self->graph->add_edge( 48, 52 );
+    $self->graph->add_edge( 52, 49 );
+    $self->graph->add_edge( 49, 53 );
+    $self->graph->add_edge( 53, 50 );
+    $self->graph->add_edge( 46, 50 );
 
     # create the 19 tiles, associated with their vertices
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'mountains',
                                                            number => 10,
-                                                           vertices => [0, 1, 2, 7, 8, 9] ) );
+                                                           vertices => [0, 3, 4, 7, 8, 12] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'pasture',
                                                            number => 2,
-                                                           vertices => [2, 3, 4, 9, 10, 11] ) );
+                                                           vertices => [1, 4, 5, 8, 9, 13] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
                                                            number => 9,
-                                                           vertices => [4, 5, 6, 11, 12, 13] ) );
+                                                           vertices => [2, 5, 6, 9, 10, 14] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'fields',
                                                            number => 12,
-                                                           vertices => [14, 7, 8, 16, 17, 18] ) );
+                                                           vertices => [7, 11, 12, 16, 17, 22] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'hills',
                                                            number => 6,
-                                                           vertices => [8, 9, 10, 18, 19, 20] ) );
+                                                           vertices => [8, 12, 13, 17, 18, 23] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'pasture',
                                                            number => 4,
-                                                           vertices => [10, 11, 12, 20, 21, 22] ) );
+                                                           vertices => [9, 13, 14, 18, 19, 24] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'hills',
                                                            number => 10,
-                                                           vertices => [12, 13, 15, 22, 23, 24] ) );
+                                                           vertices => [10, 14, 15, 19, 20, 25] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'fields',
                                                            number => 9,
-                                                           vertices => [25, 16, 17, 27, 28, 29] ) );
+                                                           vertices => [16, 21, 22, 27, 28, 33] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
                                                            number => 11,
-                                                           vertices => [17, 18, 19, 29, 30, 31] ) );
+                                                           vertices => [17, 22, 23, 28, 29, 34] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'desert',
                                                            number => 7,
-                                                           vertices => [19, 20, 21, 31, 32, 33] ) );
+                                                           vertices => [18, 23, 24, 29, 30, 35] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
                                                            number => 3,
-                                                           vertices => [21, 22, 23, 33, 34, 35] ) );
+                                                           vertices => [19, 24, 25, 30, 31, 36] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'mountains',
                                                            number => 8,
-                                                           vertices => [23, 24, 26, 35, 36, 37] ) );
+                                                           vertices => [20, 25, 26, 31, 32, 37] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'forest',
                                                            number => 8,
-                                                           vertices => [28, 29, 30, 38, 39, 40] ) );
+                                                           vertices => [28, 33, 34, 38, 39, 43] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'mountains',
                                                            number => 3,
-                                                           vertices => [30, 31, 32, 40, 41, 42] ) );
+                                                           vertices => [29, 34, 35, 39, 40, 44] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'fields',
                                                            number => 4,
-                                                           vertices => [32, 33, 34, 42, 43, 44] ) );
+                                                           vertices => [30, 35, 36, 40, 41, 45] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'pasture',
                                                            number => 5,
-                                                           vertices => [34, 35, 36, 44, 45, 46] ) );
+                                                           vertices => [31, 36, 37, 41, 42, 46] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'hills',
                                                            number => 5,
-                                                           vertices => [39, 40, 41, 47, 48, 49] ) );
+                                                           vertices => [39, 43, 44, 47, 48, 51] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'fields',
                                                            number => 6,
-                                                           vertices => [41, 42, 43, 49, 50, 51] ) );
+                                                           vertices => [40, 44, 45, 48, 49, 52] ) );
 
     push( @{$self->tiles}, Games::Catan::Board::Tile->new( terrain => 'pasture',
                                                            number => 11,
-                                                           vertices => [43, 44, 45, 51, 52, 53] ) );
+                                                           vertices => [41, 45, 46, 49, 50, 53] ) );
 
     # create the robber initially on the desert tile
     my $robber = Games::Catan::Robber->new( game => $self->game );
@@ -221,32 +221,32 @@ sub BUILD {
                                                     grain_ratio => 3,
                                                     ore_ratio => 3 );
 
-    $self->graph->set_vertex_attribute( 28, 'harbor', $brick_harbor );
+    $self->graph->set_vertex_attribute( 33, 'harbor', $brick_harbor );
     $self->graph->set_vertex_attribute( 38, 'harbor', $brick_harbor );
 
-    $self->graph->set_vertex_attribute( 14, 'harbor', $lumber_harbor );
+    $self->graph->set_vertex_attribute( 11, 'harbor', $lumber_harbor );
     $self->graph->set_vertex_attribute( 16, 'harbor', $lumber_harbor );
 
-    $self->graph->set_vertex_attribute( 45, 'harbor', $wool_harbor );
     $self->graph->set_vertex_attribute( 46, 'harbor', $wool_harbor );
+    $self->graph->set_vertex_attribute( 42, 'harbor', $wool_harbor );
 
-    $self->graph->set_vertex_attribute( 3, 'harbor', $grain_harbor );
-    $self->graph->set_vertex_attribute( 4, 'harbor', $grain_harbor );
+    $self->graph->set_vertex_attribute( 1, 'harbor', $grain_harbor );
+    $self->graph->set_vertex_attribute( 5, 'harbor', $grain_harbor );
 
-    $self->graph->set_vertex_attribute( 13, 'harbor', $ore_harbor );
+    $self->graph->set_vertex_attribute( 10, 'harbor', $ore_harbor );
     $self->graph->set_vertex_attribute( 15, 'harbor', $ore_harbor );
 
+    $self->graph->set_vertex_attribute( 3, 'harbor', $generic_harbor );
     $self->graph->set_vertex_attribute( 0, 'harbor', $generic_harbor );
-    $self->graph->set_vertex_attribute( 1, 'harbor', $generic_harbor );
 
     $self->graph->set_vertex_attribute( 26, 'harbor', $generic_harbor );
-    $self->graph->set_vertex_attribute( 37, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 32, 'harbor', $generic_harbor );
 
     $self->graph->set_vertex_attribute( 47, 'harbor', $generic_harbor );
-    $self->graph->set_vertex_attribute( 48, 'harbor', $generic_harbor );
-
-    $self->graph->set_vertex_attribute( 50, 'harbor', $generic_harbor );
     $self->graph->set_vertex_attribute( 51, 'harbor', $generic_harbor );
+
+    $self->graph->set_vertex_attribute( 52, 'harbor', $generic_harbor );
+    $self->graph->set_vertex_attribute( 49, 'harbor', $generic_harbor );
 }
 
 sub move_robber {
