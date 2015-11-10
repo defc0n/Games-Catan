@@ -16,3 +16,7 @@ between them, yielding 19 total tiles.  The tiles are indexed as follows:
 ![catan tiles](/img/catan tiles.png)
 
 Tiles themselves are not an additional data structure, but simply a collection of intersections and edges.
+
+## Copyright
+
+Settlers of Catan is © Catan GmbH 2015 (http://www.catan.com)
