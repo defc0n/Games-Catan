@@ -27,6 +27,9 @@ sub play {
 
     # increase the size of this player's army
     $self->player->army_size( $self->player->army_size + 1 );
+
+    # the player who played the cards gets to activate the robber & steal
+    $self->player->activate_robber();
 }
 
 1;

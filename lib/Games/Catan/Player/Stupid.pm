@@ -226,6 +226,8 @@ sub activate_robber {
     # move robber to the new tile
     $self->game->board->move_robber( $tile );
 
+    $self->logger->info( $self->color . " moved the robber." );
+
     # are there other players with settlements at this tile to steal from?
     my $vertices = $tile->vertices;
 
@@ -254,6 +256,8 @@ sub activate_robber {
         my $num_players = @players_to_rob;
         my $i = int( rand( $num_players ) );
         my $player = $players_to_rob[$i];
+
+	$self->logger->info( $self->color . " robbing a card from " . $player->color );
 
         # randomly pick one of their cards
         my $card = $player->steal_resource_card();
