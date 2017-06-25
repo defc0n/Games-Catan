@@ -15,12 +15,12 @@ The game board is constructed by utilizing a undirected graph data structure, wh
 edges (paths) between them.  The [Graph](https://metacpan.org/pod/distribution/Graph/lib/Graph.pod) Perl module is used
 internally.  This graph can be visualized as follows:
 
-![catan undirected graph](/img/catan undirected graph.png)
+![catan undirected graph](img/catan_undirected_graph.png)
 
 Only a standard 3-4 player game board is currently supported.  This consists of 54 total intersections, with 70 total edges
 between them, yielding 19 total tiles.  The tiles are indexed as follows:
 
-![catan tiles](/img/catan tiles.png)
+![catan tiles](img/catan_tiles.png)
 
 Tiles themselves are not an additional data structure, but simply a collection of intersections and edges.
 
