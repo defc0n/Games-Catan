@@ -9,8 +9,6 @@ use Games::Catan::ResourceCard::Ore;
 use Games::Catan::ResourceCard::Grain;
 use Games::Catan::ResourceCard::Wool;
 
-use Data::Dumper;
-
 has brick => ( is => 'ro',
                isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
                required => 0,

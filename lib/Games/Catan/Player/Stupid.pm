@@ -5,7 +5,6 @@ use Moo;
 with( 'Games::Catan::Player' );
 
 use Games::Catan::Trade;
-use Data::Dumper;
 
 ### public methods ###
 

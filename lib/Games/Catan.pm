@@ -26,8 +26,6 @@ use Log::Any;
 use Log::Any::Adapter qw( Stderr );
 use List::Util qw( shuffle min );
 
-use Data::Dumper;
-
 our $VERSION = '0.0.1';
 
 has num_players => ( is => 'ro',

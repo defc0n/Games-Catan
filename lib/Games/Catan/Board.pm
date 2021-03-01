@@ -4,7 +4,6 @@ use Moo;
 use Types::Standard qw( Enum ArrayRef InstanceOf );
 
 use Graph::Undirected;
-use Data::Dumper;
 
 use Games::Catan::Harbor;
 use Games::Catan::Robber;

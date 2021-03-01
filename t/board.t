@@ -2,7 +2,6 @@ use strict;
 use warnings;
 
 use Test::More tests => 6;
-use Data::Dumper;
 
 use Games::Catan;
 use Games::Catan::Board;

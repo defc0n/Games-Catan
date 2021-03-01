@@ -2,7 +2,6 @@ package Games::Catan::Player;
 
 use Moo::Role;
 use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf Int Maybe );
-use Data::Dumper;
 
 use Games::Catan::Building::Settlement;
 use Games::Catan::Building::City;
