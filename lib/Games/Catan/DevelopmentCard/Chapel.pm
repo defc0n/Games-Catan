@@ -9,7 +9,7 @@ use Types::Standard qw( Int Bool );
 has playable => ( is => 'ro',
 		  isa => Bool,
 		  required => 0,
-		  default => 0 );		  
+		  default => 0 );
 
 has num_points => ( is => 'ro',
                     isa => Int,

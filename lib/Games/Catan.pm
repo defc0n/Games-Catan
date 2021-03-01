@@ -121,7 +121,7 @@ sub play {
     $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
     # continue playing until there is a winner
-    while ( !$self->winner ) {	
+    while ( !$self->winner ) {
 
         # whose turn is it?
         my $player = $self->players->[$self->turn];
@@ -245,7 +245,7 @@ sub update_largest_army {
 
 		last;
 	    }
-	}	
+	}
     }
 
     # someone already has the largest army
@@ -261,7 +261,7 @@ sub update_largest_army {
 	    if ( $player->army_size > $current_largest_army->army_size ) {
 
 		$self->logger->info( "largest army taken away by " . $player->color );
-		
+
 		# update with the new player
 		$self->largest_army->player( $player );
 

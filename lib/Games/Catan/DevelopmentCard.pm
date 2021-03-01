@@ -9,7 +9,7 @@ has game => ( is => 'ro',
 
 has player => ( is => 'rw',
 		isa => Maybe[ConsumerOf['Games::Catan::Player']],
-		required => 0 );		
+		required => 0 );
 
 has played => ( is => 'rw',
 		isa => Bool,
