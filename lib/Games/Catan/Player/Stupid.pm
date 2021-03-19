@@ -499,8 +499,9 @@ sub _trade_bank {
             push @$offerable, $resource;
         }
 
-        # We dont have any of this resource, so we can request it.
-        elsif ( $num_resource == 0 ) {
+        # We don't have any of this resource, and the bank has one, so we can
+        # request it.
+        elsif ( $num_resource == 0 && @{ $self->game->bank->$resource } ) {
             push @$requestable, $resource;
         }
     }
