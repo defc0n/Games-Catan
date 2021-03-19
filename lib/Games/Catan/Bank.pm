@@ -9,80 +9,75 @@ use Games::Catan::ResourceCard::Ore;
 use Games::Catan::ResourceCard::Grain;
 use Games::Catan::ResourceCard::Wool;
 
-has brick => ( is => 'ro',
-               isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
-               required => 0,
-               default => sub { [] } );
+has brick => (
+    is       => 'ro',
+    isa      => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Brick']],
+    required => 0,
+    default  => sub { [] },
+);
 
-has lumber => ( is => 'ro',
-                isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Lumber']],
-                required => 0,
-                default => sub { [] } );
+has lumber => (
+    is       => 'ro',
+    isa      => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Lumber']],
+    required => 0,
+    default  => sub { [] },
+);
 
-has ore => ( is => 'ro',
-             isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Ore']],
-             required => 0,
-             default => sub { [] } );
+has ore => (
+    is       => 'ro',
+    isa      => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Ore']],
+    required => 0,
+    default  => sub { [] },
+);
 
-has grain => ( is => 'ro',
-               isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Grain']],
-               required => 0,
-               default => sub { [] } );
+has grain => (
+    is       => 'ro',
+    isa      => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Grain']],
+    required => 0,
+    default  => sub { [] },
+);
 
-has wool => ( is => 'ro',
-              isa => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Wool']],
-              required => 0,
-              default => sub { [] } );
+has wool => (
+    is       => 'ro',
+    isa      => ArrayRef[InstanceOf['Games::Catan::ResourceCard::Wool']],
+    required => 0,
+    default  => sub { [] },
+);
 
 sub BUILD {
-
     my ( $self ) = @_;
 
-    # initialize the resource cards, 19 of each
+    # Initialize the resource cards, 19 of each
     for ( 1 .. 19 ) {
-
-        push( @{$self->brick}, Games::Catan::ResourceCard::Brick->new() );
-        push( @{$self->lumber}, Games::Catan::ResourceCard::Lumber->new() );
-        push( @{$self->ore}, Games::Catan::ResourceCard::Ore->new() );
-        push( @{$self->grain}, Games::Catan::ResourceCard::Grain->new() );
-        push( @{$self->wool}, Games::Catan::ResourceCard::Wool->new() );
+        push @{$self->brick}, Games::Catan::ResourceCard::Brick->new();
+        push @{$self->lumber}, Games::Catan::ResourceCard::Lumber->new();
+        push @{$self->ore}, Games::Catan::ResourceCard::Ore->new();
+        push @{$self->grain}, Games::Catan::ResourceCard::Grain->new();
+        push @{$self->wool}, Games::Catan::ResourceCard::Wool->new();
     }
 }
 
 sub give_resource_cards {
-
     my ( $self, $cards ) = @_;
 
-    foreach my $card ( @$cards ) {
-
+    for my $card ( @$cards ) {
 	if ( $card->isa( 'Games::Catan::ResourceCard::Brick' ) ) {
-
-	    push( @{$self->brick}, $card );
+	    push @{$self->brick}, $card;
 	}
-
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Lumber' ) ) {
-
-	    push( @{$self->lumber}, $card );
+	    push @{$self->lumber}, $card;
 	}
-
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Ore' ) ) {
-
-	    push( @{$self->ore}, $card );
+	    push @{$self->ore}, $card;
 	}
-
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Grain' ) ) {
-
-	    push( @{$self->grain}, $card );
+	    push @{$self->grain}, $card;
 	}
-
 	elsif ( $card->isa( 'Games::Catan::ResourceCard::Wool' ) ) {
-
-	    push( @{$self->wool}, $card );
+	    push @{$self->wool}, $card;
 	}
-
 	else {
-
-	    die( "Unknown resource card." );
+	    die "Unknown resource card.";
 	}
     }
 }
