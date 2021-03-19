@@ -1,5 +1,4 @@
 lib/Games/Catan.pm
-lib/Games/Catan.pod
 lib/Games/Catan/Bank.pm
 lib/Games/Catan/Board.pm
 lib/Games/Catan/Board/Tile.pm

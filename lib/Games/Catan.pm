@@ -28,6 +28,22 @@ use List::Util qw( shuffle min );
 
 our $VERSION = '0.0.1';
 
+=head1 NAME
+
+Games::Catan - A Catan Simulator
+
+=head1 SYNOPSIS
+
+  my $catan = Games::Catan->new( num_players => 4 );
+  $catan->play;
+
+=head1 DESCRIPTION
+
+This is an attempt to model the board game Catan in Perl. It currently will only
+create computer AI players to play against one another.
+
+=cut
+
 has num_players => (
     is       => 'ro',
     isa      => Enum[qw( 3 4 )],
