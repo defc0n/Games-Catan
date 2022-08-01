@@ -194,7 +194,26 @@ sub get_score {
     $score += $self->_get_building_score();
 
     # Determine their score from any victory points from development cards.
-    $score += $self->_get_development_card_score();
+    $score += $self->_get_development_card_score( played_only => 1);
+
+    # See if they have any victory points from special cards.
+    $score += $self->_get_special_card_score();
+
+    return $score;
+}
+
+sub get_private_score {
+    my ( $self ) = @_;
+
+    my $board = $self->game->board;
+
+    my $score = 0;
+
+    # Figure out their score from their buildings on the board.
+    $score += $self->_get_building_score();
+
+    # Determine their score from any victory points from development cards.
+    $score += $self->_get_development_card_score;
 
     # See if they have any victory points from special cards.
     $score += $self->_get_special_card_score();
@@ -720,13 +739,16 @@ sub _get_building_score {
 }
 
 sub _get_development_card_score {
-    my ( $self ) = @_;
+    my ( $self, %args ) = @_;
+
+    my $played_only = $args{played_only} // 0;
 
     my $score = 0;
 
     my $development_cards = $self->development_cards;
 
     for my $development_card ( @$development_cards ) {
+	next if $played_only && !$development_card->played;
         $score += $development_card->num_points;
     }
 
