@@ -28,9 +28,8 @@ has cost => (
 sub buy {
     my ( $self, $location ) = @_;
 
-    $self->logger->info( $self->player->color . " upgraded to a city." );
-
     $self->game->board->upgrade_settlement( $location );
+    $self->logger->info( $self->player->color . " upgraded to a city." );
 }
 
 1;

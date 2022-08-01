@@ -303,8 +303,6 @@ sub build_settlement {
 sub build_road {
     my ( $self, $path ) = @_;
 
-    $self->logger->info( $self->color . " built a road." );
-
     # Grab one of our roads to build on the board.
     my $road = shift @{$self->roads};
     die "No more roads" unless $road;
@@ -313,6 +311,7 @@ sub build_road {
 
     # Place it on the board.
     $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
+    $self->logger->info( $self->color . " built a road." );
 
     # Pay the bank.
     $self->_buy( $road );
@@ -672,8 +671,6 @@ sub steal_resource_card {
 
     my $i    = int( rand @$resource_cards );
     my $card = $resource_cards->[$i];
-
-    $self->logger->info( ref( $card ) . " stolen from " . $self->color );
 
     if ( $card->isa('Games::Catan::ResourceCard::Brick') ) {
         return shift( @{$self->brick} );

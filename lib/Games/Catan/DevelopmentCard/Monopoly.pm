@@ -46,6 +46,9 @@ sub play {
 
 	# Take away each one of that resource from other player.
 	while ( my $stolen_resource = shift( @{ $player->$resource } ) ) {
+	    # Give it to this player who played the card
+	    push @{ $self->player->$resource }, $stolen_resource;
+
 	    $self->logger->info(
                 sprintf(
                     "%s stole a %s from %s.",
@@ -54,9 +57,6 @@ sub play {
                     $player->color,
                 )
             );
-
-	    # Give it to this player who played the card
-	    push @{ $self->player->$resource }, $stolen_resource;
 	}
     }
 

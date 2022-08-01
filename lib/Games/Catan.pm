@@ -162,12 +162,14 @@ sub play {
         # Tell the player to take their turn.
         $player->take_turn();
 
+	# Is the game over?
+	$self->check_winner();
+	last if $self->winner;
+
         # It will be the next player's turn.
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
 	$self->logger->info( "*** " . $player->color . " ends turn" );
-
-	$self->check_winner();
     }
 
     return $self;
@@ -187,11 +189,10 @@ sub roll {
         for my $player ( @{$self->players} ) {
 
             if ( @{$player->get_resource_cards()} > 7 ) {
-		$self->logger->info(
-                    $player->color . " must remove half their cards."
-                );
-
                 $player->discard_robber_cards();
+		$self->logger->info(
+                    $player->color . " removed half their cards."
+                );
             }
         }
 
@@ -273,7 +274,7 @@ sub update_largest_army {
 	for my $player ( @$players ) {
 	    if ( $player->army_size == 3 ) {
 		$self->logger->info(
-                    "largest army acquired by " . $player->color
+                    "largest army obtained by " . $player->color
                 );
 
 		$self->largest_army->player( $player );
@@ -296,7 +297,11 @@ sub update_largest_army {
 	    # Found a different player with a larger army size.
 	    if ( $player->army_size > $current_largest_army->army_size ) {
 		$self->logger->info(
-                    "largest army taken away by " . $player->color
+		    sprintf(
+			"%s took largest army away from %s!",
+			$player->color,
+			$current_largest_army->color,
+		    )
                 );
 
 		# Update with the new player.
@@ -326,17 +331,12 @@ sub update_longest_road {
 	    my $len = @$player_longest_road - 1;
 
             if ( $len >= 5 ) {
-		$self->logger->info(
-                    sprintf(
-                        "longest road acquired by %s with length %d: %s",
-                        $player->color,
-                        $len,
-                        join( ', ', @$player_longest_road ),
-                    )
-                );
-
                 $self->longest_road->player( $player );
 		$player->longest_road( $self->longest_road );
+
+		$self->logger->info(
+		    "longest road obtained by " . $player->color
+		);
 
                 last;
             }
@@ -388,25 +388,21 @@ sub update_longest_road {
 
 	# Was it a tie amongst newer players?
 	if ( @$new_players > 1 ) {
+	    # Longest road ends up a tie and goes back to the bank.
+	    $current_longest_road_player->clear_longest_road();
+	    $self->longest_road->clear_player();
+
 	    $self->logger->info(
                 sprintf(
                     "players %s tie for longest road so it goes to the bank!",
                     join( ', ', @$new_players ),
                 )
             );
-
-	    # Longest road ends up a tie and goes back to the bank.
-	    $current_longest_road_player->clear_longest_road();
-	    $self->longest_road->clear_player();
 	}
 
 	# One player now has longest road.
 	else {
 	    my $player_color = $new_players->[0];
-
-	    $self->logger->info(
-                "longest road taken away by " . $player_color
-            );
 
 	    my $new_player;
 
@@ -423,6 +419,14 @@ sub update_longest_road {
 	    # Set longest road on new player.
 	    $self->longest_road->player( $new_player );
 	    $new_player->longest_road( $self->longest_road );
+
+	    $self->logger->info(
+		sprintf(
+		    "%s took longest road away from %s!",
+		    $player_color,
+		    $current_longest_road_player->color,
+		)
+	    );
 	}
     }
 }
@@ -456,6 +460,8 @@ sub _distribute_resource_cards {
 
     my $tiles = $self->board->tiles;
 
+    my $allocations = {};
+
     for my $tile ( @$tiles ) {
         my $terrain = $tile->terrain;
         my $vertices = $tile->vertices;
@@ -488,6 +494,7 @@ sub _distribute_resource_cards {
                     next if !defined $brick;
 
                     push( @{$player->brick}, $brick );
+		    $allocations->{ $player->color }{brick}++;
                 }
                 elsif ( $terrain eq 'forest' ) {
                     my $lumber = pop( @{$self->bank->lumber} );
@@ -495,6 +502,7 @@ sub _distribute_resource_cards {
                     next if !defined $lumber;
 
                     push( @{$player->lumber}, $lumber );
+		    $allocations->{ $player->color }{lumber}++;
                 }
                 elsif ( $terrain eq 'mountains' ) {
                     my $ore = pop( @{$self->bank->ore} );
@@ -502,6 +510,7 @@ sub _distribute_resource_cards {
                     next if !defined $ore;
 
                     push( @{$player->ore}, $ore );
+		    $allocations->{ $player->color }{ore}++;
                 }
                 elsif ( $terrain eq 'fields' ) {
                     my $grain = pop( @{$self->bank->grain} );
@@ -509,6 +518,7 @@ sub _distribute_resource_cards {
                     next if !defined $grain;
 
                     push( @{$player->grain}, $grain );
+		    $allocations->{ $player->color }{grain}++;
                 }
                 elsif ( $terrain eq 'pasture' ) {
                     my $wool = pop( @{$self->bank->wool} );
@@ -516,9 +526,24 @@ sub _distribute_resource_cards {
                     next if !defined $wool;
 
                     push( @{$player->wool}, $wool );
+		    $allocations->{ $player->color }{wool}++;
                 }
             }
         }
+    }
+
+    for my $player ( keys %$allocations ) {
+	for my $resource ( keys %{ $allocations->{ $player } } ) {
+	    my $num = $allocations->{ $player }->{ $resource };
+	    $self->logger->info(
+		sprintf(
+		    "%s received %d %s.",
+		    $player,
+		    $num,
+		    $resource,
+		)
+	    );
+	}
     }
 }
 

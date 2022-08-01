@@ -177,9 +177,14 @@ sub take_turn {
         }
 
         # Have we won the game now?
-        $score = $self->get_score();
-
-        if ( $score >= 10 ) {
+        $score = $self->get_private_score();
+	if ( $score >= 10 ) {
+	    # Play any unplayed victory point cards.
+	    for my $card ( @$development_cards ) {
+		next unless $card->num_points;
+		$card->played(1);
+		$self->logger->info( $self->color . " plays victory point card!" );
+	    }
             $self->logger->info( $self->color . " claims victory!" );
             $self->game->winner( $self );
             return;
@@ -244,10 +249,6 @@ sub activate_robber {
         my $i           = int( rand( $num_players ) );
         my $player      = $players_to_rob[$i];
 
-	$self->logger->info(
-            $self->color . " robbing a card from " . $player->color
-        );
-
         # Randomly pick one of their cards
         my $card = $player->steal_resource_card;
 
@@ -271,12 +272,15 @@ sub activate_robber {
         elsif ( $card->isa('Games::Catan::ResourceCard::Ore') ) {
             push @{ $self->ore }, $card;
         }
+
+	$self->logger->info(
+            $self->color . " robbed a card from " . $player->color
+        );
     }
 }
 
 sub offer_trade {
     my ( $self, %args ) = @_;
-
     my $from = $args{from};
     my $deal = $args{deal};
 
@@ -383,6 +387,7 @@ sub _place_starting_settlement {
     # Place settlement on intersection.
     my $settlement = shift @{ $self->settlements };
     $graph->set_vertex_attribute( $intersection, "building", $settlement );
+    $self->logger->info( $self->color . " placed a starting settlement" );
 
     my @paths = $graph->edges_at( $intersection );
 
@@ -395,6 +400,7 @@ sub _place_starting_settlement {
         # Take one of our roads and place it on the board.
         my $road = shift @{ $self->roads };
         $graph->set_edge_attribute( $int1, $int2, "road", $road );
+	$self->logger->info( $self->color . " placed a starting road" );
 
         # Only get to build one road with our settlement.
         last;
