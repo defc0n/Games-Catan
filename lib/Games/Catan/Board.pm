@@ -278,6 +278,18 @@ sub BUILD {
     $self->graph->set_vertex_attribute( 49, 'harbor', $generic_harbor );
 }
 
+sub get_road {
+    my ( $self, $u, $v ) = @_;
+
+    return $self->graph->get_edge_attribute( $u, $v, 'road' );
+}
+
+sub set_road {
+    my ( $self, $u, $v, $road ) = @_;
+
+    $self->graph->set_edge_attribute( $u, $v, 'road', $road );
+}
+
 sub move_robber {
     my ( $self, $tile ) = @_;
 
