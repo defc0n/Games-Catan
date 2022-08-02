@@ -473,6 +473,9 @@ sub _distribute_resource_cards {
         # Didn't roll the number of this tile.
         next if ( $roll && $roll != $number );
 
+	# Robber is stealing resources on this tile.
+	next if $tile->robber;
+
         for my $vertex ( @$vertices ) {
             my $building = $self->board->graph->get_vertex_attribute(
                 $vertex,
