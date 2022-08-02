@@ -211,9 +211,11 @@ sub activate_robber {
     my $resource_cards = $self->get_resource_cards;
 
     # Randomly pick a new tile to move the robber to.
+    my @eligible_tiles = grep { ! $_->robber } @$tiles;
+
     my $num_tiles = @$tiles;
-    my $i         = int( rand( $num_tiles ) );
-    my $tile      = $tiles->[$i];
+    my $i         = int( rand( @eligible_tiles ) );
+    my $tile      = $eligible_tiles[ $i ];
 
     # Move robber to the new tile.
     $self->game->board->move_robber( $tile );
