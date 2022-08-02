@@ -22,7 +22,9 @@ has num_points => (
 sub play {
     my ( $self, $resource ) = @_;
 
-    $self->logger->info( $self->player->color . " played Monopoly." );
+    $self->logger->info(
+	$self->player->color . " is playing Monopoly."
+    );
 
     my %valid_resources = map { $_ => 1 } qw(
         brick
@@ -61,6 +63,10 @@ sub play {
     }
 
     $self->played( 1 );
+
+    $self->logger->info(
+	$self->player->color . " finished Monopoly."
+    );
 }
 
 1;

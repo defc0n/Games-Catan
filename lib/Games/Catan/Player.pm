@@ -323,8 +323,6 @@ sub build_road {
 sub buy_development_card {
     my ( $self ) = @_;
 
-    $self->logger->info( $self->color . " bought a development card." );
-
     # Grab one of the game dev cards.
     my $development_card = shift @{ $self->game->development_cards };
     die "No more development cards" unless $development_card;
@@ -335,6 +333,8 @@ sub buy_development_card {
 
     # Pay the bank.
     $self->_buy( $development_card );
+
+    $self->logger->info( $self->color . " bought a development card." );
 }
 
 sub request_player_trade {

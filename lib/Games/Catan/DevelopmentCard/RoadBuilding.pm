@@ -22,7 +22,9 @@ has num_points => (
 sub play {
     my ( $self, $paths ) = @_;
 
-    $self->logger->info( $self->player->color . " played Road Building." );
+    $self->logger->info(
+	$self->player->color . " is playing Road Building."
+    );
 
     for my $path ( @$paths ) {
 	my ( $u, $v ) = @$path;
@@ -43,6 +45,10 @@ sub play {
     $self->game->update_longest_road;
 
     $self->played( 1 );
+
+    $self->logger->info(
+	$self->player->color . " finished Road Building."
+    );
 }
 
 1;

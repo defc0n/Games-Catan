@@ -22,7 +22,9 @@ has num_points => (
 sub play {
     my ( $self, $resources ) = @_;
 
-    $self->logger->info( $self->player->color . " played Year of Plenty." );
+    $self->logger->info(
+	$self->player->color . " is playing Year of Plenty."
+    );
 
     my %valid_resources = map { $_ => 1 } qw(
         brick
@@ -56,6 +58,10 @@ sub play {
     }
 
     $self->played( 1 );
+
+    $self->logger->info(
+	$self->player->color . " finished Year of Plenty."
+    );
 }
 
 1;
