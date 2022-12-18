@@ -131,6 +131,9 @@ sub BUILD {
     $self->graph->add_edge( 53, 50 );
     $self->graph->add_edge( 46, 50 );
 
+    $self->graph->add_edge( 44, 48 );
+    $self->graph->add_edge( 45, 49 );
+
     # Create the 19 tiles, associated with their vertices.
     $self->tiles([
         Games::Catan::Board::Tile->new(
