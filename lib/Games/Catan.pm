@@ -130,8 +130,13 @@ sub BUILD { shift->_setup }
 sub play {
     my ( $self ) = @_;
 
+    $self->logger->info('*** GAME START ***');
+
     # Randomly determine which player goes first and mark it as their turn.
     $self->turn( int( rand( $self->num_players ) ) );
+
+    my $first = $self->players->[ $self->turn ];
+    $self->logger->info( $first->color . ' goes first!' );
 
     # Get the players first settlements + roads.
     $self->_get_first_settlements();
