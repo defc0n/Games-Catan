@@ -17,7 +17,7 @@ internally.  This graph can be visualized as follows:
 
 ![catan undirected graph](img/catan_undirected_graph.png)
 
-Only a standard 3-4 player game board is currently supported.  This consists of 54 total intersections, with 70 total edges
+Only a standard 3-4 player game board is currently supported.  This consists of 54 total intersections, with 72 total edges
 between them, yielding 19 total tiles.  The tiles are indexed as follows:
 
 ![catan tiles](img/catan_tiles.png)
