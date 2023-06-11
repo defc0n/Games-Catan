@@ -177,11 +177,37 @@ sub place_first_settlement { die "Method must be implemented." }
 
 sub place_second_settlement { die "Method must be implemented." }
 
-sub take_turn { die "Method must be implemented." }
-
 sub offer_trade { die "Method must be implemented." }
 
 sub activate_robber { die "Method must be implemented." }
+
+sub take_turn { die "Method must be implemented." }
+
+before take_turn => sub {
+    my ( $self ) = @_;
+
+    if ( $self->get_score >= 10 ) {
+
+        $self->logger->info( $self->color . " claims victory!" );
+        $self->game->winner( $self );
+        return;
+    }
+};
+
+after take_turn => sub {
+    my ( $self ) = @_;
+    if ( $self->get_private_score() >= 10 ) {
+        # Play any unplayed victory point cards.
+        for my $card ( @{ $self->development_cards } ) {
+            next unless $card->num_points;
+            $card->played(1);
+            $self->logger->info( $self->color . " plays victory point card!" );
+        }
+        $self->logger->info( $self->color . " claims victory!" );
+        $self->game->winner( $self );
+        return;
+    }
+};
 
 sub get_score {
     my ( $self ) = @_;

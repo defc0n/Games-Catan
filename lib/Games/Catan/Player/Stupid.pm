@@ -11,17 +11,6 @@ sub take_turn {
     # Keep track whether we've already played a development card.
     my $played_dev_card = 0;
 
-    # Before we bother rolling, see if we've won the game.
-    my $score = $self->get_score;
-
-    # We already won the game.
-    if ( $score >= 10 ) {
-
-        $self->logger->info( $self->color . " claims victory!" );
-        $self->game->winner( $self );
-        return;
-    }
-
     # See if we have any unplayed development cards.
     my $development_cards = $self->development_cards;
     my @unplayed_development_cards;
@@ -175,22 +164,8 @@ sub take_turn {
         else {
             $self->buy_development_card;
         }
-
-        # Have we won the game now?
-        $score = $self->get_private_score();
-	if ( $score >= 10 ) {
-	    # Play any unplayed victory point cards.
-	    for my $card ( @$development_cards ) {
-		next unless $card->num_points;
-		$card->played(1);
-		$self->logger->info( $self->color . " plays victory point card!" );
-	    }
-            $self->logger->info( $self->color . " claims victory!" );
-            $self->game->winner( $self );
-            return;
-        }
     }
-}
+};
 
 sub place_first_settlement {
     my ( $self ) = @_;
