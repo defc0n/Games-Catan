@@ -21,6 +21,8 @@ sub BUILD {
         on_stream => sub {
             my ( $self, $stream ) = @_;
 
+            warn "*** ON STREAM";
+
             $stream->configure(
                 on_read => sub {
                     my ( $stream, $buffref, $eof ) = @_;
@@ -116,10 +118,12 @@ sub BUILD {
         on_resolve_error => sub {
             my ( $listener, $message, $errno ) = @_;
             # ...
+            warn "*** RESOLVE ERROR";
         },
         on_listen_error => sub {
             my ($listener, $message, $errno) = @_;
             # ...
+            warn "*** LISTEN ERROR";
         },
     );
 
