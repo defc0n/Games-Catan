@@ -1,6 +1,7 @@
 requires 'autovivification';
 requires 'strict';
 requires 'warnings';
+requires 'Future::AsyncAwait';
 requires 'Graph::Undirected';
 requires 'IO::Async::Handle';
 requires 'IO::Async::Listener';

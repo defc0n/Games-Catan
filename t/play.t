@@ -3,10 +3,11 @@ use warnings;
 
 use Test::More tests => 1;
 
+use Future::AsyncAwait;
 use Games::Catan;
 
 my $catan = Games::Catan->new( num_players => 4 );
-my $game = $catan->play();
+my $game = await $catan->play();
 ok( $game, 'play()ed game!' );
 
 diag( $game->winner->color . " won the game!" );

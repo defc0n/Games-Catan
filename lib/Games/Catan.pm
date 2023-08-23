@@ -22,6 +22,7 @@ use Games::Catan::DevelopmentCard::Library;
 use Games::Catan::DevelopmentCard::University;
 use Games::Catan::DevelopmentCard::Market;
 
+use Future::AsyncAwait;
 use Log::Any;
 use Log::Any::Adapter qw( Stderr );
 use List::Util qw( shuffle min );
@@ -127,7 +128,7 @@ has logger => (
 
 sub BUILD { shift->_setup }
 
-sub play {
+async sub play {
     my ( $self ) = @_;
 
     $self->logger->info('*** GAME START ***');
@@ -165,7 +166,7 @@ sub play {
 	$self->logger->info( "*** " . $player->color . " starts turn" );
 
         # Tell the player to take their turn.
-        $player->take_turn();
+        await $player->take_turn();
 
 	# Is the game over?
 	$self->check_winner();
@@ -180,7 +181,7 @@ sub play {
     return $self;
 }
 
-sub roll {
+async sub roll {
     my ( $self, $player ) = @_;
 
     my $roll = $self->dice->roll();
@@ -194,21 +195,23 @@ sub roll {
         for my $player ( @{$self->players} ) {
 
             if ( @{$player->get_resource_cards()} > 7 ) {
-                $player->discard_robber_cards();
-		$self->logger->info(
+                await $player->discard_robber_cards();
+                $self->logger->info(
                     $player->color . " removed half their cards."
                 );
             }
         }
 
         # Player who rolled a 7 must choose new robber location and rob someone.
-        $player->activate_robber();
+        await $player->activate_robber();
     }
 
     # Distribute resources accordingly based upon the roll.
     else {
         $self->_distribute_resource_cards( $roll );
     }
+
+    return 1;
 }
 
 sub check_winner {
@@ -436,24 +439,24 @@ sub update_longest_road {
     }
 }
 
-sub _get_first_settlements {
+async sub _get_first_settlements {
     my ( $self ) = @_;
 
-    for ( 1 .. $self->num_players ) {
+    foreach my $n ( 1 .. $self->num_players ) {
         my $player = $self->players->[$self->turn];
-        $player->place_first_settlement();
+        await $player->place_first_settlement();
 
         # Set turn for the next player.
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
     }
 }
 
-sub _get_second_settlements {
+async sub _get_second_settlements {
     my ( $self ) = @_;
 
-    for ( 1 .. $self->num_players ) {
+    foreach my $n ( 1 .. $self->num_players ) {
         my $player = $self->players->[$self->turn];
-        $player->place_second_settlement();
+        await $player->place_second_settlement();
 
         # Set turn for the next player (going back in the opposite direction).
         $self->turn( ( $self->turn - 1 ) % $self->num_players );

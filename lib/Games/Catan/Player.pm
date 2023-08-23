@@ -3,6 +3,7 @@ package Games::Catan::Player;
 use Moo::Role;
 use Types::Standard qw( Enum ArrayRef InstanceOf ConsumerOf Int Maybe );
 
+use Future::AsyncAwait;
 use Games::Catan::Building::Settlement;
 use Games::Catan::Building::City;
 use Games::Catan::Road;
@@ -173,15 +174,15 @@ sub BUILD {
     }
 }
 
-sub place_first_settlement { die "Method must be implemented." }
+async sub place_first_settlement { die "Method must be implemented." }
 
-sub place_second_settlement { die "Method must be implemented." }
+async sub place_second_settlement { die "Method must be implemented." }
 
-sub offer_trade { die "Method must be implemented." }
+async sub offer_trade { die "Method must be implemented." }
 
-sub activate_robber { die "Method must be implemented." }
+async sub activate_robber { die "Method must be implemented." }
 
-sub take_turn { die "Method must be implemented." }
+async sub take_turn { die "Method must be implemented." }
 
 before take_turn => sub {
     my ( $self ) = @_;
@@ -363,7 +364,7 @@ sub buy_development_card {
     $self->logger->info( $self->color . " bought a development card." );
 }
 
-sub request_player_trade {
+async sub request_player_trade {
     my ( $self, %args ) = @_;
 
     my $to   = $args{'to'};
@@ -381,7 +382,7 @@ sub request_player_trade {
     }
 
     # Offer the trade to the player and see if they accept.
-    my $accepted = $to->offer_trade(
+    my $accepted = await $to->offer_trade(
         from => $self,
         deal => $deal,
     );

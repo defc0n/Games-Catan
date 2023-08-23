@@ -3,9 +3,10 @@ package Games::Catan::Player::Stupid;
 use Moo;
 with 'Games::Catan::Player';
 
+use Future::AsyncAwait;
 use Games::Catan::Trade;
 
-sub take_turn {
+async sub take_turn {
     my ( $self ) = @_;
 
     # Keep track whether we've already played a development card.
@@ -47,7 +48,7 @@ sub take_turn {
     $self->_trade_bank if ( int( rand( 2 ) ) );
 
     # Potentially trade with another player.
-    $self->_trade_player if ( int( rand ( 2 ) ) );
+    await $self->_trade_player if ( int( rand ( 2 ) ) );
 
     # Decide if we want to play a development card (if we haven't already).
     if ( !$played_dev_card && @unplayed_development_cards > 0 ) {
@@ -165,19 +166,25 @@ sub take_turn {
             $self->buy_development_card;
         }
     }
-};
 
-sub place_first_settlement {
-    my ( $self ) = @_;
-    $self->_place_starting_settlement();
+    return 1;
 }
 
-sub place_second_settlement {
+async sub place_first_settlement {
     my ( $self ) = @_;
+
     $self->_place_starting_settlement();
+    return 1;
 }
 
-sub activate_robber {
+async sub place_second_settlement {
+    my ( $self ) = @_;
+
+    $self->_place_starting_settlement();
+    return 1;
+}
+
+async sub activate_robber {
     my ( $self ) = @_;
 
     my $graph = $self->game->board->graph;
@@ -250,13 +257,15 @@ sub activate_robber {
             push @{ $self->ore }, $card;
         }
 
-	$self->logger->info(
+        $self->logger->info(
             $self->color . " robbed a card from " . $player->color
         );
     }
+
+    return 1;
 }
 
-sub offer_trade {
+async sub offer_trade {
     my ( $self, %args ) = @_;
     my $from = $args{from};
     my $deal = $args{deal};
@@ -294,7 +303,7 @@ sub offer_trade {
     return int( rand( 2 ) );
 }
 
-sub discard_robber_cards {
+async sub discard_robber_cards {
     my ( $self ) = @_;
 
     my $resource_cards = $self->get_resource_cards;
@@ -336,6 +345,8 @@ sub discard_robber_cards {
     }
 
     $self->game->bank->give_resource_cards( \@removed );
+
+    return 1;
 }
 
 sub _place_starting_settlement {
@@ -377,7 +388,7 @@ sub _place_starting_settlement {
         # Take one of our roads and place it on the board.
         my $road = shift @{ $self->roads };
         $graph->set_edge_attribute( $int1, $int2, "road", $road );
-	$self->logger->info( $self->color . " placed a starting road" );
+        $self->logger->info( $self->color . " placed a starting road" );
 
         # Only get to build one road with our settlement.
         last;
@@ -518,7 +529,7 @@ sub _trade_bank {
     return $self->request_bank_trade( deal => $trade );
 }
 
-sub _trade_player {
+async sub _trade_player {
     my ( $self ) = @_;
 
     my $requestable = [];
@@ -566,7 +577,7 @@ sub _trade_player {
         # Don't trade with ourself!
         next if $self->color eq $player->color;
 
-        my $accepted = $self->request_player_trade(
+        my $accepted = await $self->request_player_trade(
             to   => $player,
             deal => $trade,
         );
@@ -574,6 +585,8 @@ sub _trade_player {
         # Found a player to accept our trade, all done.
         last if $accepted;
     }
+
+    return 1;
 }
 
 1;
