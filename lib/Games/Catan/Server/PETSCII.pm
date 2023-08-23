@@ -3,6 +3,7 @@ package Games::Catan::Server::PETSCII;
 use Moo;
 extends 'Net::Server::PreFork';
 
+use Future::AsyncAwait;
 use IO::Async::Loop;
 use IO::Async::Handle;
 use IO::Async::Stream;
@@ -296,7 +297,9 @@ sub intro_loop {
                 }
                 # Create new game.
                 else {
+                    warn "*** SENDING NEW GAME COMMAND";
                     print $sock "NEW $selected_game_type\n";
+                    warn "*** READING RESPONSE";
                     my $res = <$sock>;
                     chomp $res;
                     ( $gamecode_buf, $player_color ) = $res =~ /^(.{8}) (.+)$/;
@@ -316,7 +319,9 @@ sub game_loop {
     my ( $self ) = @_;
 
     warn "*** in game_loop";
-    $self->render();
+    $self->render_board();
+    $self->render_player();
+    $self->render_waiting();
     warn "*** done calling render()";
 
     my $loop = IO::Async::Loop->new;
@@ -336,11 +341,47 @@ sub game_loop {
     warn "*** how did i get here";
 }
 
-sub render {
+sub render_waiting {
+    my ( $self ) = @_;
+
+    print HOME;
+    print chr(17) x 24;
+    print TEXT_LIGHT_GREY;
+    print "WAITING FOR OTHER PLAYERS...";
+}
+
+sub render_player {
+    my ( $self ) = @_;
+
+    print HOME;
+
+    print chr(29) x 32;
+    print TEXT_LIGHT_GREY;
+    print "PLAYER:";
+
+    print INVERT_TEXT;
+
+    if ( $player_color eq 'WHITE' ) {
+        print TEXT_WHITE;
+    }
+    elsif ( $player_color eq 'ORANGE' ) {
+        print TEXT_ORANGE;
+    }
+    elsif ( $player_color eq 'BLUE' ) {
+        print TEXT_BLUE;
+    }
+    else {
+        print TEXT_RED;
+    }
+
+    print " ";
+    print REVERT_TEXT;
+}
+
+sub render_board {
     my ( $self ) = @_;
 
     print CLEAR_SCREEN;
-    print MODE_GRAPHICS;
     print HOME;
 
     for my $chr ( @board ) {
