@@ -23,9 +23,11 @@ use Games::Catan::DevelopmentCard::University;
 use Games::Catan::DevelopmentCard::Market;
 
 use Future::AsyncAwait;
+use JSON::XS qw( encode_json );
 use Log::Any;
 use Log::Any::Adapter qw( Stderr );
 use List::Util qw( shuffle min );
+use String::CamelCase qw( decamelize );
 
 our $VERSION = '0.0.1';
 
@@ -617,6 +619,43 @@ sub _setup {
     # Setup the game board.
     my $board = Games::Catan::Board->new( game => $self );
     $self->board( $board );
+}
+
+sub serialize {
+    my ( $self ) = @_;
+
+    return encode_json({
+        players => [
+            map {{
+                color             => $_->color,
+                score             => $_->get_score,
+                private_score     => $_->get_private_score,
+                resource_cards    => {
+                    brick  => scalar @{ $_->brick },
+                    lumber => scalar @{ $_->lumber },
+                    wool   => scalar @{ $_->wool },
+                    grain  => scalar @{ $_->grain },
+                    ore    => scalar @{ $_->ore },
+                },
+                development_cards => [
+                    map {{
+                        $_->playable ? ( playable => JSON::XS::true ) : (),
+                        $_->played ?   ( played   => JSON::XS::true ) : (),
+                        name       => decamelize( ( split /::/, ref $_ )[-1] ),
+                        num_points => $_->num_points,
+                    }}
+                    @{ $_->development_cards }
+                ],
+                special_cards     => {
+                    $_->longest_road ? ( longest_road => JSON::XS::true ) : (),
+                    $_->largest_army ? ( largest_army => JSON::XS::true ) : (),
+                },
+                $self->players->[ $self->turn ]->color eq $_->color
+                    ? ( is_turn => JSON::XS::true ) : (),
+            }} @{ $self->players }
+        ],
+        board => JSON::XS::decode_json( $self->board->serialize ),
+    });
 }
 
 1;

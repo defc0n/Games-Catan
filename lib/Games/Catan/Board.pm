@@ -9,6 +9,7 @@ use Games::Catan::Harbor;
 use Games::Catan::Robber;
 use Games::Catan::Board::Tile;
 
+use JSON::XS;
 use Storable qw( dclone );
 
 no autovivification;
@@ -535,6 +536,71 @@ sub _get_connecting_intersection {
 
     return $u1 if $u1 == $u2 || $u1 == $v2;
     return $v1;
+}
+
+sub serialize {
+    my ( $self ) = @_;
+
+    my @tiles =
+        map  {{
+            terrain => $_->terrain,
+            roll    => $_->number,
+            $_->robber ? ( robber => JSON::XS::true ) : ()
+        }}
+        @{ $self->tiles };
+
+    my ( $intersections, $paths ) = $self->graph->as_hashes;
+
+    my $roads = {};
+
+    for my $u ( sort { $a <=> $b } keys %$paths ) {
+        for my $v ( sort { $a <=> $b } keys %{ $paths->{ $u } } ) {
+            no autovivification;
+            next if $roads->{ $v }->{ $u }; # Don't include the same road twice.
+            my $road = $paths->{ $u }->{ $v }->{road};
+            next unless $road;
+            $roads->{ $u }->{ $v } = $road->player->color;
+        }
+    }
+
+    my $buildings = {};
+    my $harbors   = {};
+
+    for my $v ( keys %$intersections ) {
+        if ( my $building = $intersections->{ $v }->{building} ) {
+            $buildings->{ $v } = {
+                player => $building->player->color,
+                type   => $building->isa('Games::Catan::Building::Settlement')
+                    ? 'settlement'
+                    : 'city'
+            };
+        }
+        if ( my $harbor = $intersections->{ $v }->{harbor} ) {
+            $harbors->{ $v } =
+                $harbor->brick_ratio  == 3 &&
+                $harbor->lumber_ratio == 3 &&
+                $harbor->wool_ratio   == 3 &&
+                $harbor->grain_ratio  == 3 &&
+                $harbor->ore_ratio    == 3
+                  ? 'generic' :
+                $harbor->brick_ratio  == 2
+                  ? 'brick' :
+                $harbor->lumber_ratio == 2
+                  ? 'lumber' :
+                $harbor->wool_ratio   == 2
+                  ? 'wool' :
+                $harbor->grain_ratio  == 2
+                  ? 'grain'
+                  : 'ore';
+        }
+    }
+
+    return JSON::XS::encode_json({
+        tiles        => \@tiles,
+        roads        => $roads,
+        buildings    => $buildings,
+        harbors      => $harbors,
+    });
 }
 
 1;

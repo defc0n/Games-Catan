@@ -7,6 +7,7 @@ requires 'IO::Async::Handle';
 requires 'IO::Async::Listener';
 requires 'IO::Async::Loop';
 requires 'IO::Async::Stream';
+requires 'JSON::XS';
 requires 'List::Util';
 requires 'Log::Any';
 requires 'Log::Any::Adapter';
@@ -14,6 +15,7 @@ requires 'Moo';
 requires 'Moo::Role';
 requires 'Net::Server::PreFork';
 requires 'Storable';
+requires 'String::CamelCase';
 requires 'String::Random';
 requires 'Types::Standard';
 
