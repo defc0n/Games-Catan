@@ -1,9 +1,13 @@
 package Games::Catan::Player::Human;
 
 use Moo;
-with 'Games::Catan::Player';
+#with 'Games::Catan::Player';
+extends 'Games::Catan::Player::Stupid';
 
+use Future::AsyncAwait;
 use Types::Standard qw( InstanceOf );
+
+use Log::Any::Adapter;
 
 has stream => (
     is  => 'ro',
@@ -12,16 +16,22 @@ has stream => (
 
 use Games::Catan::Trade;
 
-sub take_turn {}
+sub BUILD {
+    my ( $self ) = @_;
 
-sub place_first_settlement {}
+    return $self;
+}
 
-sub place_second_settlement {}
+#sub take_turn {}
 
-sub activate_robber {}
+#async sub place_first_settlement {}
 
-sub offer_trade {}
+#sub place_second_settlement {}
 
-sub discard_robber_cards {}
+#sub activate_robber {}
+
+#sub offer_trade {}
+
+#sub discard_robber_cards {}
 
 1;

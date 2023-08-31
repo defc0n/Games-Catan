@@ -189,7 +189,7 @@ before take_turn => sub {
 
     if ( $self->get_score >= 10 ) {
 
-        $self->logger->info( $self->color . " claims victory!" );
+        $self->logger->info( $self->color . " claims victory" );
         $self->game->winner( $self );
         return;
     }
@@ -202,9 +202,9 @@ after take_turn => sub {
         for my $card ( @{ $self->development_cards } ) {
             next unless $card->num_points;
             $card->played(1);
-            $self->logger->info( $self->color . " plays victory point card!" );
+            $self->logger->info( $self->color . " plays victory point card" );
         }
-        $self->logger->info( $self->color . " claims victory!" );
+        $self->logger->info( $self->color . " claims victory" );
         $self->game->winner( $self );
         return;
     }
@@ -270,7 +270,7 @@ sub can_afford {
 sub upgrade_settlement {
     my ( $self, $intersection ) = @_;
 
-    $self->logger->info( $self->color . " upgraded a settlement to city." );
+    $self->logger->info( $self->color . " upgraded a settlement to city" );
 
     # Grab a city we'll upgrade it to.
     my $city = shift( @{$self->cities} );
@@ -304,7 +304,7 @@ sub upgrade_settlement {
 sub build_settlement {
     my ( $self, $intersection ) = @_;
 
-    $self->logger->info( $self->color . " built a settlement." );
+    $self->logger->info( $self->color . " built a settlement" );
 
     # Grab one of our settlements to build on the board.
     my $settlement = shift @{$self->settlements};
@@ -338,7 +338,7 @@ sub build_road {
 
     # Place it on the board.
     $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
-    $self->logger->info( $self->color . " built a road." );
+    $self->logger->info( $self->color . " built a road" );
 
     # Pay the bank.
     $self->_buy( $road );
@@ -361,7 +361,7 @@ sub buy_development_card {
     # Pay the bank.
     $self->_buy( $development_card );
 
-    $self->logger->info( $self->color . " bought a development card." );
+    $self->logger->info( $self->color . " bought a development card" );
 }
 
 async sub request_player_trade {
@@ -391,7 +391,7 @@ async sub request_player_trade {
     return unless $accepted;
 
     $self->logger->info(
-        "trade deal accepted from " . $self->color . " to " . $to->color
+        "trade from " . $self->color . " to " . $to->color . " accepted"
     );
 
     # Exchange all of the resources as part of the trade deal.
@@ -531,7 +531,7 @@ sub request_bank_trade {
 
     $self->logger->info(
         sprintf(
-            "%s exchanged %d %s for %d %s with bank",
+            "%s gave bank %d %s for %d %s",
             $self->color,
             $offer_num,
             $offer_resource,

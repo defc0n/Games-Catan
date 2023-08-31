@@ -23,7 +23,7 @@ sub play {
     my ( $self, $paths ) = @_;
 
     $self->logger->info(
-	$self->player->color . " is playing Road Building."
+	$self->player->color . " is playing Road Building"
     );
 
     for my $path ( @$paths ) {
@@ -38,7 +38,7 @@ sub play {
 	# Place it on the board.d
 	$self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
 
-	$self->logger->info( $self->player->color . " built a road." );
+	$self->logger->info( $self->player->color . " built a road" );
     }
 
     # It is possible this could affect who has the longest road.
@@ -47,7 +47,7 @@ sub play {
     $self->played( 1 );
 
     $self->logger->info(
-	$self->player->color . " finished Road Building."
+	$self->player->color . " finished Road Building"
     );
 }
 

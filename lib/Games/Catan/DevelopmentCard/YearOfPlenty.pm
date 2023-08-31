@@ -23,7 +23,7 @@ sub play {
     my ( $self, $resources ) = @_;
 
     $self->logger->info(
-	$self->player->color . " is playing Year of Plenty."
+	$self->player->color . " is playing Year of Plenty"
     );
 
     my %valid_resources = map { $_ => 1 } qw(
@@ -42,7 +42,7 @@ sub play {
 
     $self->logger->info(
         sprintf(
-            "%s has decided to take %s and %s from the bank.",
+            "%s took %s and %s from the bank",
             $self->player->color,
             $resources->[0],
             $resources->[1],
@@ -60,7 +60,7 @@ sub play {
     $self->played( 1 );
 
     $self->logger->info(
-	$self->player->color . " finished Year of Plenty."
+	$self->player->color . " finished Year of Plenty"
     );
 }
 

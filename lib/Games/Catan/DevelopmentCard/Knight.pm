@@ -28,7 +28,7 @@ sub play {
     # Increase the size of this player's army.
     $self->player->army_size( $self->player->army_size + 1 );
 
-    $self->logger->info( $self->player->color . " played a Knight." );
+    $self->logger->info( $self->player->color . " played a Knight" );
 
     # The player who played the cards gets to activate the robber & steal.
     $self->player->activate_robber;

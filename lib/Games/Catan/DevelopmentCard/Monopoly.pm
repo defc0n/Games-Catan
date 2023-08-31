@@ -23,7 +23,7 @@ sub play {
     my ( $self, $resource ) = @_;
 
     $self->logger->info(
-	$self->player->color . " is playing Monopoly."
+	$self->player->color . " is playing Monopoly"
     );
 
     my %valid_resources = map { $_ => 1 } qw(
@@ -38,7 +38,7 @@ sub play {
         unless $valid_resources{$resource};
 
     $self->logger->info(
-        $self->player->color . " has decided to steal $resource."
+        $self->player->color . " has decided to steal $resource"
     );
 
     for my $player ( @{ $self->game->players } ) {
@@ -53,7 +53,7 @@ sub play {
 
 	    $self->logger->info(
                 sprintf(
-                    "%s stole a %s from %s.",
+                    "%s stole a %s from %s",
                     $self->player->color,
                     $resource,
                     $player->color,
@@ -65,7 +65,7 @@ sub play {
     $self->played( 1 );
 
     $self->logger->info(
-	$self->player->color . " finished Monopoly."
+	$self->player->color . " finished Monopoly"
     );
 }
 

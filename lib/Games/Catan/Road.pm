@@ -43,7 +43,7 @@ sub buy {
     my $road = shift @{ $self->player->roads };
 
     $self->game->board->graph->set_edge_attribute( $u, $v, 'road', $road );
-    $self->logger->info( $self->player->color . " built a road." );
+    $self->logger->info( $self->player->color . " built a road" );
 }
 
 1;

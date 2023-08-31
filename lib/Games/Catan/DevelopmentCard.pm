@@ -1,6 +1,7 @@
 package Games::Catan::DevelopmentCard;
 
 use Moo::Role;
+use String::CamelCase qw( decamelize );
 use Types::Standard qw( Bool InstanceOf ConsumerOf Maybe );
 
 has game => (
@@ -47,8 +48,10 @@ sub buy {
     my ( $self ) = @_;
 
     my $development_card = shift( @{$self->game->development_cards} );
+    my $name = decamelize( ( split /::/, ref $development_card )[-1] );
+    $name =~ s/_/ /g;
     $self->logger->info(
-        $self->player->color . " bought a " . ref $development_card
+        $self->player->color . " bought a $name"
     );
 
     # Set player as the owner of the card.

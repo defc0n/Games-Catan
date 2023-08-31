@@ -2,17 +2,20 @@ package Games::Catan::Server;
 
 use Moo;
 
+use Future::AsyncAwait;
 use Games::Catan;
 use Games::Catan::Player::Human;
+use Games::Catan::Player::Stupid;
 use IO::Async::Loop;
 use IO::Async::Listener;
 use IO::Async::Stream;
+use JSON::XS;
 use String::Random qw( random_regex );
 
 my %games;
 my %players;
 
-sub BUILD {
+async sub start {
     my ( $self ) = @_;
 
     my $loop = IO::Async::Loop->new;
@@ -24,6 +27,7 @@ sub BUILD {
             warn "*** ON STREAM";
 
             $stream->configure(
+                autoflush => 1,
                 on_read => sub {
                     my ( $stream, $buffref, $eof ) = @_;
                     my $data = $$buffref;
@@ -36,6 +40,7 @@ sub BUILD {
 
                         my $game = Games::Catan->new(
                             num_players => $num_players,
+                            loop        => $loop,
                         );
                         $games{$id} = $game;
 
@@ -47,8 +52,37 @@ sub BUILD {
                             )
                         ]);
 
-                        $stream->write("$id WHITE\n");
+                        push( @{ $game->players },
+                              Games::Catan::Player::Stupid->new(
+                                  game       => $game,
+                                  color      => 'red',
+                                  turn_delay => 3,
+                              )
+                        );
+
+                        push( @{ $game->players },
+                              Games::Catan::Player::Stupid->new(
+                                  game       => $game,
+                                  color      => 'orange',
+                                  turn_delay => 3,
+                              )
+                        );
+
+                        push( @{ $game->players },
+                              Games::Catan::Player::Stupid->new(
+                                  game       => $game,
+                                  color      => 'blue',
+                                  turn_delay => 3,
+                              )
+                        ) if $num_players == 4;
+
+                        my $data = JSON::XS::decode_json( $game->serialize );
+                        $data->{player}  = 'white';
+                        $data->{game_id} = $id;
+                        $stream->write( JSON::XS::encode_json( $data ) . "\n" );
                         warn "*** WHITE CREATED NEW $num_players GAME!";
+
+                        $game->play;
                     }
                     elsif ( $data =~ /^JOIN (.{8})$/ ) {
                         my $id   = $1;
@@ -84,10 +118,11 @@ sub BUILD {
                         }
 
                         push @$players,
-                            Games::Catan::Player::Human->new(
+#                            Games::Catan::Player::Human->new(
+                            Games::Catan::Player::Stupid->new(
                                 game   => $game,
                                 color  => $color,
-                                stream => $stream,
+                                #stream => $stream,
                             );
 
                         warn "*** $color JOINED EXISTING $num_players GAME!";
@@ -108,6 +143,8 @@ sub BUILD {
     );
 
     $loop->add( $listener );
+
+    unlink '/tmp/catan-server.sock';
 
     $listener->listen(
         addr => {

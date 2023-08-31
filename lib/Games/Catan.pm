@@ -22,10 +22,11 @@ use Games::Catan::DevelopmentCard::Library;
 use Games::Catan::DevelopmentCard::University;
 use Games::Catan::DevelopmentCard::Market;
 
+use IO::Async::Loop;
 use Future::AsyncAwait;
-use JSON::XS qw( encode_json );
+use JSON::XS;
 use Log::Any;
-use Log::Any::Adapter qw( Stderr );
+use Log::Any::Adapter;
 use List::Util qw( shuffle min );
 use String::CamelCase qw( decamelize );
 
@@ -77,6 +78,7 @@ has players => (
     is       => 'rw',
     isa      => ArrayRef[ConsumerOf['Games::Catan::Player']],
     required => 0,
+    default  => sub { [] },
 );
 
 has turn => (
@@ -95,6 +97,7 @@ has development_cards => (
     is       => 'rw',
     isa      => ArrayRef[ConsumerOf['Games::Catan::DevelopmentCard']],
     required => 0,
+    default  => sub { [] },
 );
 
 has largest_army => (
@@ -128,27 +131,41 @@ has logger => (
     default  => sub { Log::Any->get_logger() },
 );
 
-sub BUILD { shift->_setup }
+has loop => (
+    is       => 'ro',
+    isa      => InstanceOf['IO::Async::Loop'],
+    required => 0,
+    default  => sub { IO::Async::Loop->new },
+);
+
+sub BUILD {
+    my ( $self ) = @_;
+
+    $self->_setup;
+
+    Log::Any::Adapter->set( 'Catan', $self );
+
+    return $self;
+}
 
 async sub play {
     my ( $self ) = @_;
-
-    $self->logger->info('*** GAME START ***');
+    $self->logger->info('GAME START');
 
     # Randomly determine which player goes first and mark it as their turn.
     $self->turn( int( rand( $self->num_players ) ) );
 
     my $first = $self->players->[ $self->turn ];
-    $self->logger->info( $first->color . ' goes first!' );
+    $self->logger->info( $first->color . ' goes first' );
 
     # Get the players first settlements + roads.
-    $self->_get_first_settlements();
+    await $self->_get_first_settlements();
 
     # Player who went last goes first this round.
     $self->turn( ( $self->turn - 1 ) % $self->num_players );
 
     # Get the players second settlements + roads.
-    $self->_get_second_settlements();
+    await $self->_get_second_settlements();
 
     # Update player harbor trade ratios.
     $self->update_trade_ratios();
@@ -165,7 +182,7 @@ async sub play {
         # Whose turn is it?
         my $player = $self->players->[$self->turn];
 
-	$self->logger->info( "*** " . $player->color . " starts turn" );
+	$self->logger->info( $player->color . " starts turn" );
 
         # Tell the player to take their turn.
         await $player->take_turn();
@@ -177,7 +194,7 @@ async sub play {
         # It will be the next player's turn.
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
 
-	$self->logger->info( "*** " . $player->color . " ends turn" );
+	$self->logger->info( $player->color . " ends turn" );
     }
 
     return $self;
@@ -188,24 +205,23 @@ async sub roll {
 
     my $roll = $self->dice->roll();
 
-    $self->logger->info( $player->color . " rolled a $roll." );
+    $self->logger->info( $player->color . " rolled a $roll" );
 
     # Did they activate the robber?
     if ( $roll == 7 ) {
 
         # Any player with more than 7 cards must discard half of them.
         for my $player ( @{$self->players} ) {
-
             if ( @{$player->get_resource_cards()} > 7 ) {
                 await $player->discard_robber_cards();
                 $self->logger->info(
-                    $player->color . " removed half their cards."
+                    $player->color . " removed half their cards"
                 );
             }
         }
 
         # Player who rolled a 7 must choose new robber location and rob someone.
-        await $player->activate_robber();
+        my $res = await $player->activate_robber();
     }
 
     # Distribute resources accordingly based upon the roll.
@@ -308,7 +324,7 @@ sub update_largest_army {
 	    if ( $player->army_size > $current_largest_army->army_size ) {
 		$self->logger->info(
 		    sprintf(
-			"%s took largest army away from %s!",
+			"%s took largest army away from %s",
 			$player->color,
 			$current_largest_army->color,
 		    )
@@ -404,10 +420,12 @@ sub update_longest_road {
 
 	    $self->logger->info(
                 sprintf(
-                    "players %s tie for longest road so it goes to the bank!",
+                    "players %s tie for longest road",
                     join( ', ', @$new_players ),
                 )
             );
+
+            $self->logger->info("longest road goes to the bank");
 	}
 
 	# One player now has longest road.
@@ -432,7 +450,7 @@ sub update_longest_road {
 
 	    $self->logger->info(
 		sprintf(
-		    "%s took longest road away from %s!",
+		    "%s took longest road away from %s",
 		    $player_color,
 		    $current_longest_road_player->color,
 		)
@@ -444,25 +462,32 @@ sub update_longest_road {
 async sub _get_first_settlements {
     my ( $self ) = @_;
 
-    foreach my $n ( 1 .. $self->num_players ) {
-        my $player = $self->players->[$self->turn];
+    # await inside a for loop doesn't work how we want.
+    my $n = 0;
+    while ( $n++ < $self->num_players ) {
+        my $player = $self->players->[ $self->turn ];
         await $player->place_first_settlement();
 
         # Set turn for the next player.
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
     }
+
+    return 1;
 }
 
 async sub _get_second_settlements {
     my ( $self ) = @_;
 
-    foreach my $n ( 1 .. $self->num_players ) {
+    my $n = 0;
+    while ( $n++ < $self->num_players ) {
         my $player = $self->players->[$self->turn];
         await $player->place_second_settlement();
 
         # Set turn for the next player (going back in the opposite direction).
         $self->turn( ( $self->turn - 1 ) % $self->num_players );
     }
+
+    return 1;
 }
 
 sub _distribute_resource_cards {
@@ -550,7 +575,7 @@ sub _distribute_resource_cards {
 	    my $num = $allocations->{ $player }->{ $resource };
 	    $self->logger->info(
 		sprintf(
-		    "%s received %d %s.",
+		    "%s received %d %s",
 		    $player,
 		    $num,
 		    $resource,
@@ -624,38 +649,52 @@ sub _setup {
 sub serialize {
     my ( $self ) = @_;
 
-    return encode_json({
-        players => [
-            map {{
-                color             => $_->color,
-                score             => $_->get_score,
-                private_score     => $_->get_private_score,
-                resource_cards    => {
-                    brick  => scalar @{ $_->brick },
-                    lumber => scalar @{ $_->lumber },
-                    wool   => scalar @{ $_->wool },
-                    grain  => scalar @{ $_->grain },
-                    ore    => scalar @{ $_->ore },
-                },
-                development_cards => [
-                    map {{
-                        $_->playable ? ( playable => JSON::XS::true ) : (),
-                        $_->played ?   ( played   => JSON::XS::true ) : (),
-                        name       => decamelize( ( split /::/, ref $_ )[-1] ),
-                        num_points => $_->num_points,
-                    }}
-                    @{ $_->development_cards }
-                ],
-                special_cards     => {
-                    $_->longest_road ? ( longest_road => JSON::XS::true ) : (),
-                    $_->largest_army ? ( largest_army => JSON::XS::true ) : (),
-                },
-                $self->players->[ $self->turn ]->color eq $_->color
-                    ? ( is_turn => JSON::XS::true ) : (),
-            }} @{ $self->players }
-        ],
-        board => JSON::XS::decode_json( $self->board->serialize ),
-    });
+    my $data = {
+        players => [],
+        board   => JSON::XS::decode_json( $self->board->serialize ),
+    };
+
+    for my $player ( @{ $self->players } ) {
+        my $pdata = {
+            color          => $player->color,
+            score          => $player->get_score,
+            private_score  => $player->get_private_score,
+            resource_cards => {
+                brick  => scalar @{ $player->brick },
+                lumber => scalar @{ $player->lumber },
+                wool   => scalar @{ $player->wool },
+                grain  => scalar @{ $player->grain },
+                ore    => scalar @{ $player->ore },
+            },
+
+            development_cards => [],
+            special_cards     => {},
+        };
+
+        if ( @{ $self->players } > 0 && defined( $self->turn ) ) {
+            $pdata->{is_turn} = JSON::XS::true
+                if $self->players->[ $self->turn ]->color eq $player->color;
+        }
+
+        for my $card ( @{ $player->development_cards } ) {
+            push @{ $pdata->{development_cards} }, {
+                $card->playable ? ( playable => JSON::XS::true ) : (),
+                $card->played   ? ( played   => JSON::XS::true ) : (),
+                name       => decamelize( ( split /::/, ref $card )[-1] ),
+                num_points => $card->num_points,
+            };
+        }
+
+        $pdata->{special_cards}->{longest_road} = JSON::XS::true
+            if $player->longest_road;
+
+        $pdata->{special_cards}->{largest_army} = JSON::XS::true
+            if $player->largest_army;
+
+        push @{ $data->{players} }, $pdata;
+    }
+
+    return JSON::XS::encode_json( $data );
 }
 
 1;
