@@ -13,6 +13,7 @@ has player => (
     is       => 'rw',
     isa      => Maybe[ConsumerOf['Games::Catan::Player']],
     required => 0,
+    clearer  => 1,
 );
 
 1;
