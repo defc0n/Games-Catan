@@ -3,11 +3,12 @@ package Games::Catan::Server::PETSCII;
 use Moo;
 extends 'Net::Server::PreFork';
 
-use Array::Compare;
+use Data::Compare;
 use Future::AsyncAwait;
 use IO::Async::Loop;
 use IO::Async::Handle;
 use IO::Async::Stream;
+use IO::Handle;
 use IO::Socket::UNIX;
 use JSON::XS;
 use Storable qw( dclone );
@@ -289,11 +290,14 @@ sub refresh_screen {
 
     my %differences;
     for ( my $i = 0; $i < @screen; $i++ ) {
-        my @row_diff = Array::Compare->new->full_compare(
-            $screen[ $i ],
-            $new_screen[ $i ]
-        );
-
+        my @row_diff;
+        for ( my $j = 0; $j < @{ $screen[ $i ] }; $j++ ) {
+            push( @row_diff, $j )
+                unless Data::Compare::Compare(
+                    $screen[ $i ]->[ $j ],
+                    $new_screen[ $i ]->[ $j ],
+                );
+        }
         $differences{ $i } = \@row_diff if @row_diff;
     }
 
@@ -306,7 +310,6 @@ sub refresh_screen {
         my $distance = $difference_row - $current_row;
         for ( my $j = 0; $j < $distance; $j++ ) {
             # cursor down
-            warn "*** cursor down";
             print chr(17);
         }
 
@@ -316,12 +319,11 @@ sub refresh_screen {
             # cursor right
             my $j;
             for ( $j = 0; $j < $distance; $j++ ) {
-                warn "*** cursor right";
                 print chr(29);
             }
             $current_col = $col_diff;
 
-            my ( $color, $inverted, $char ) = @{ $new_screen[ $current_row ]->[ $current_col ] };
+            my ( $color, $inverted, $char ) = @{ $new_screen[ $difference_row ]->[ $col_diff ] };
             print $inverted unless ord($current_inverted) == ord($inverted);
             $current_inverted = $inverted;
 
@@ -333,17 +335,21 @@ sub refresh_screen {
             $current_col++;
         }
 
-        # Return
-        #print chr(13);
-
         # Handle line wrap.
         if ( $current_col == 40 ) {
-            $current_col = 0;
             $current_row++;
         }
         else {
             $current_row = $difference_row + 1;
+            print chr(13);
         }
+
+        $current_col = 0;
+    }
+
+    my $distance = 24 - $current_row;
+    for ( my $i = $current_row; $i < 24; $i++ ) {
+        print chr(17);
     }
 
     print ' '      for 1 .. 39;
@@ -355,6 +361,9 @@ sub refresh_screen {
     my $blue = TEXT_BLUE();
     my $grey = TEXT_GREY();
 
+    my $invert = INVERT_TEXT();
+    my $revert = REVERT_TEXT();
+
     if ( $game_state->{message} ) {
         warn $game_state->{message};
         my $message = uc( $game_state->{message} );
@@ -362,6 +371,7 @@ sub refresh_screen {
         $message =~ s/RED/${red}RED${grey}/g;
         $message =~ s/ORANGE/${orange}ORANGE${grey}/g;
         $message =~ s/BLUE/${blue}BLUE${grey}/g;
+        $message =~ s/ROLLED (\d+)/ROLLED ${invert}${white}$1${revert}${grey}/;
         print $grey, $message;
     }
 
@@ -480,7 +490,7 @@ sub intro_loop {
     my $handle = IO::Async::Handle->new(
         read_handle   => \*STDIN,
         on_read_ready => sub {
-            my $char = <STDIN>;
+            my $char = STDIN->getc;
 
             unless ( defined $char ) {
                 $loop->stop;

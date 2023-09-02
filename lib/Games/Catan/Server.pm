@@ -28,7 +28,7 @@ async sub start {
 
             $stream->configure(
                 autoflush => 1,
-                on_read => sub {
+                on_read => async sub {
                     my ( $stream, $buffref, $eof ) = @_;
                     my $data = $$buffref;
                     chomp $data;
@@ -82,7 +82,7 @@ async sub start {
                         $stream->write( JSON::XS::encode_json( $data ) . "\n" );
                         warn "*** WHITE CREATED NEW $num_players GAME!";
 
-                        $game->play;
+                        await $game->play;
                     }
                     elsif ( $data =~ /^JOIN (.{8})$/ ) {
                         my $id   = $1;

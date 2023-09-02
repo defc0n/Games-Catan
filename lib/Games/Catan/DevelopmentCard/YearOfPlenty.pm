@@ -42,7 +42,7 @@ sub play {
 
     $self->logger->info(
         sprintf(
-            "%s took %s and %s from the bank",
+            "%s took %s and %s from bank",
             $self->player->color,
             $resources->[0],
             $resources->[1],

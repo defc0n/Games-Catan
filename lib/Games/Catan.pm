@@ -23,6 +23,7 @@ use Games::Catan::DevelopmentCard::University;
 use Games::Catan::DevelopmentCard::Market;
 
 use IO::Async::Loop;
+use IO::Async::Timer::Countdown;
 use Future::AsyncAwait;
 use JSON::XS;
 use Log::Any;
@@ -152,6 +153,15 @@ async sub play {
     my ( $self ) = @_;
     $self->logger->info('GAME START');
 
+    my $f = $self->loop->new_future;
+    my $timer = IO::Async::Timer::Countdown->new(
+        delay     => 10,
+        on_expire => sub { $f->done(1) },
+    );
+    $timer->start;
+    $self->loop->add( $timer );
+    $f->await;
+
     # Randomly determine which player goes first and mark it as their turn.
     $self->turn( int( rand( $self->num_players ) ) );
 
@@ -205,7 +215,7 @@ async sub roll {
 
     my $roll = $self->dice->roll();
 
-    $self->logger->info( $player->color . " rolled a $roll" );
+    $self->logger->info( $player->color . " rolled $roll" );
 
     # Did they activate the robber?
     if ( $roll == 7 ) {
@@ -324,7 +334,7 @@ sub update_largest_army {
 	    if ( $player->army_size > $current_largest_army->army_size ) {
 		$self->logger->info(
 		    sprintf(
-			"%s took largest army away from %s",
+			"%s took largest army from %s",
 			$player->color,
 			$current_largest_army->color,
 		    )
@@ -450,7 +460,7 @@ sub update_longest_road {
 
 	    $self->logger->info(
 		sprintf(
-		    "%s took longest road away from %s",
+		    "%s took longest road from %s",
 		    $player_color,
 		    $current_longest_road_player->color,
 		)

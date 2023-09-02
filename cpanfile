@@ -1,7 +1,7 @@
 requires 'autovivification';
 requires 'strict';
 requires 'warnings';
-requires 'Array::Compare';
+requires 'Data::Compare';
 requires 'Future', '0.44';
 requires 'Future::AsyncAwait';
 requires 'Graph::Undirected';
