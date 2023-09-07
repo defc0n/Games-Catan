@@ -151,17 +151,19 @@ sub BUILD {
 
 async sub play {
     my ( $self ) = @_;
-    $self->logger->info('GAME START');
+    return await $self->_play;
+}
 
-    my $f = $self->loop->new_future;
+async sub _play {
+    my ( $self ) = @_;
+    $self->logger->info('GAME START');
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => 10,
-        on_expire => sub { $f->done(1) },
+        on_expire => sub { $self->loop->stop },
     );
     $timer->start;
     $self->loop->add( $timer );
-    $f->await;
-
+    $self->loop->run;
     # Randomly determine which player goes first and mark it as their turn.
     $self->turn( int( rand( $self->num_players ) ) );
 
@@ -476,7 +478,9 @@ async sub _get_first_settlements {
     my $n = 0;
     while ( $n++ < $self->num_players ) {
         my $player = $self->players->[ $self->turn ];
-        await $player->place_first_settlement();
+        my $ret = await $player->place_first_settlement();
+
+        $self->_place_starting_settlement( $player, $ret );
 
         # Set turn for the next player.
         $self->turn( ( $self->turn + 1 ) % $self->num_players );
@@ -490,14 +494,41 @@ async sub _get_second_settlements {
 
     my $n = 0;
     while ( $n++ < $self->num_players ) {
-        my $player = $self->players->[$self->turn];
-        await $player->place_second_settlement();
+        my $player = $self->players->[ $self->turn ];
+        my $ret = await $player->place_second_settlement();
+
+        $self->_place_starting_settlement( $player, $ret );
 
         # Set turn for the next player (going back in the opposite direction).
         $self->turn( ( $self->turn - 1 ) % $self->num_players );
     }
 
     return 1;
+}
+
+sub _place_starting_settlement {
+    my ( $self, $player, $ret ) = @_;
+
+    my $settlement = shift @{ $player->settlements };
+        $self->board->graph->set_vertex_attribute(
+            $ret->{settlement},
+            "building",
+            $settlement,
+        );
+
+        $self->logger->info(
+            $player->color . " placed a starting settlement"
+        );
+
+        # Take one of our roads and place it on the board.
+        my $road = shift @{ $player->roads };
+        $self->board->graph->set_edge_attribute(
+            $ret->{road}->[0],
+            $ret->{road}->[1],
+            "road",
+            $road,
+        );
+        $self->logger->info( $player->color . " placed a starting road" );
 }
 
 sub _distribute_resource_cards {

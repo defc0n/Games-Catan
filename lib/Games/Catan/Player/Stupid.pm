@@ -41,16 +41,14 @@ async sub take_turn {
         # Randomly decide if we want to play one or not before we roll.
         if ( int( rand( 2 ) ) ) {
 
-            my $f = $self->game->loop->new_future;
-
             my $timer = IO::Async::Timer::Countdown->new(
                 delay     => $self->turn_delay,
-                on_expire => sub { $f->done(1) },
+                on_expire => sub { $self->game->loop->stop },
             );
 
             $timer->start;
             $self->game->loop->add( $timer );
-            $f->await;
+            $self->game->loop->run;
 
             $self->_play_random_development_card(
                 @unplayed_development_cards
@@ -62,16 +60,14 @@ async sub take_turn {
         }
     }
 
-    my $f = $self->game->loop->new_future;
-
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => $self->turn_delay,
-        on_expire => sub { $f->done(1) },
+        on_expire => sub { $self->game->loop->stop },
     );
 
     $timer->start;
     $self->game->loop->add( $timer );
-    $f->await;
+    $self->game->loop->run;
 
     # Player must now roll.
     await $self->game->roll( $self );
@@ -219,21 +215,17 @@ async sub take_turn {
 async sub place_first_settlement {
     my ( $self ) = @_;
 
-    await $self->_place_starting_settlement();
-    return 1;
+    return await $self->_place_starting_settlement();
 }
 
 async sub place_second_settlement {
     my ( $self ) = @_;
 
-    await $self->_place_starting_settlement();
-    return 1;
+    return await $self->_place_starting_settlement();
 }
 
 async sub activate_robber {
     my ( $self ) = @_;
-
-    my $f = $self->game->loop->new_future;
 
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => $self->turn_delay,
@@ -316,13 +308,13 @@ async sub activate_robber {
                 );
             }
 
-            $f->done(1);
+            $self->game->loop->stop;
         },
     );
 
     $timer->start;
     $self->game->loop->add( $timer );
-    $f->await;
+    $self->game->loop->run;
     return 1;
 }
 
@@ -331,11 +323,11 @@ async sub offer_trade {
     my $from = $args{from};
     my $deal = $args{deal};
 
+    my $ret;
+
     # We're stupid and don't care who its from, even if they are about to win.
     # One could imagine a smarter AI who won't make deals depending upon who the
     # trade offer is from.
-
-    my $f = $self->game->loop->new_future;
 
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => $self->turn_delay,
@@ -352,7 +344,7 @@ async sub offer_trade {
                 # Reject the trade deal if we don't have any of this resource
                 # they want.
                 if ( @{ $self->$resource } == 0 ) {
-                    $f->done(0);
+                    $self->game->loop->stop;
                     return;
                 }
             }
@@ -367,27 +359,26 @@ async sub offer_trade {
                 # Reject the trade deal if we already have some of what they are
                 # offering.
                 if ( @{ $self->$resource } > 0 ) {
-                    $f->done(0);
+                    $self->game->loop->stop;
                     return;
                 }
             }
 
             # Randomly decide whether or not to accept this trade offer.
-            my $ret = int( rand( 2 ) );
-            $f->done($ret);
+            $ret = int( rand( 2 ) );
+            $self->game->loop->stop;
         },
     );
 
     $timer->start;
     $self->game->loop->add( $timer );
+    $self->game->loop->run;
 
-    return $f->await->get;
+    return $ret;
 }
 
 async sub discard_robber_cards {
     my ( $self ) = @_;
-
-    my $f = $self->game->loop->new_future;
 
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => $self->turn_delay,
@@ -430,13 +421,13 @@ async sub discard_robber_cards {
 
             $self->game->bank->give_resource_cards( \@removed );
 
-            $f->done(1);
+            $self->game->loop->stop;
         },
     );
 
     $timer->start;
     $self->game->loop->add( $timer );
-    $f->await;
+    $self->game->loop->run;
 
     return 1;
 }
@@ -444,7 +435,9 @@ async sub discard_robber_cards {
 async sub _place_starting_settlement {
     my ( $self ) = @_;
 
-    my $f = $self->game->loop->new_future;
+    my $intersection;
+    my $path_u;
+    my $path_v;
 
     my $timer = IO::Async::Timer::Countdown->new(
         delay     => $self->turn_delay,
@@ -454,7 +447,7 @@ async sub _place_starting_settlement {
             # Keep trying until we find a valid location.
           FIND_INTERSECTION:
 
-            my $intersection = $graph->random_vertex;
+            $intersection = $graph->random_vertex;
 
             # This intersection is already occupied!
             goto FIND_INTERSECTION
@@ -470,43 +463,30 @@ async sub _place_starting_settlement {
                     if $graph->has_vertex_attribute( $neighbor, "building" );
             }
 
-            # Place settlement on intersection.
-            my $settlement = shift @{ $self->settlements };
-            $graph->set_vertex_attribute(
-                $intersection,
-                "building",
-                $settlement,
-            );
-            $self->logger->info(
-                $self->color . " placed a starting settlement"
-            );
-
             my @paths = $graph->edges_at( $intersection );
 
             for my $path ( @paths ) {
-                my ( $int1, $int2 ) = @$path;
+                ( $path_u, $path_v ) = @$path;
 
                 # Already a road built on this path.
-                next if $graph->has_edge_attribute( $int1, $int2, "road" );
-
-                # Take one of our roads and place it on the board.
-                my $road = shift @{ $self->roads };
-                $graph->set_edge_attribute( $int1, $int2, "road", $road );
-                $self->logger->info( $self->color . " placed a starting road" );
+                next if $graph->has_edge_attribute( $path_u, $path_v, "road" );
 
                 # Only get to build one road with our settlement.
                 last;
             }
 
-            $f->done(1);
+            $self->game->loop->stop;
         },
     );
 
     $timer->start;
     $self->game->loop->add( $timer );
-    $f->await;
+    $self->game->loop->run;
 
-    return 1;
+    return {
+        settlement => $intersection,
+        road       => [ $path_u, $path_v ],
+    };
 }
 
 sub _play_random_development_card {
